@@ -239,10 +239,17 @@ because the view parses the raw body itself.
 
 ```python
 # urls.py
-path("cap/", include("capwx.contrib.drf.urls")),  # widget endpoint: /cap/<site>/
+from django.urls import include, path
 
+urlpatterns = [
+    path("cap/", include("capwx.contrib.drf.urls")),  # widget endpoint: /cap/<site>/
+]
+```
+
+```python
 # a protected view
 from capwx.contrib.drf import cap_permission
+
 
 class OrderView(APIView):
     permission_classes = [cap_permission(site="login")]
