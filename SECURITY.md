@@ -4,7 +4,7 @@
 
 Please do not open a public issue for security problems.
 
-Report them privately to: **alifani1377@gmail.com**, or via GitHub's private vulnerability reporting on the repository's Security tab.
+Report them privately to: **alifani1377@gmail.com**.
 
 Include the affected version, a description of the issue, and steps to
 reproduce. We aim to acknowledge reports within 5 working days.
