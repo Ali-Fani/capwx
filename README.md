@@ -7,8 +7,8 @@ integration.
 > **Unofficial.** `capwx` is an independent port. It is not affiliated with, endorsed by, or
 > supported by Cap or its authors.
 
-**Status: 0.1.0, pre-release.** The API may still change before the first release. The package is
-not on PyPI yet; the release workflow publishes it when a `v0.1.0` tag is pushed.
+**Status: 0.2.0, beta.** Published on PyPI as [`capwx`](https://pypi.org/project/capwx/). The API may
+still change in minor releases; changes are listed in the [changelog](CHANGELOG.md).
 
 ## What it is
 
@@ -404,7 +404,7 @@ out:
 
 ## Known limitations
 
-- Pre-release. The API may still change, and 0.1.0 is not on PyPI yet.
+- Beta. The API may still change in minor releases.
 - The Django views need a synchronous store.
 - Stateless tokens can be replayed until they expire.
 - The database cache backend does not give single use under concurrency. Use Redis.
