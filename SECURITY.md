@@ -4,7 +4,7 @@
 
 Please do not open a public issue for security problems.
 
-Report them privately to: **alifani1377@gmail.com**.
+Report them privately to **alifani1377@gmail.com**, or use GitHub's private vulnerability reporting (Security tab → Report a vulnerability) on https://github.com/Ali-Fani/capwx.
 
 Include the affected version, a description of the issue, and steps to
 reproduce. We aim to acknowledge reports within 5 working days.
