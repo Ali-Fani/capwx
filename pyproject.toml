@@ -10,7 +10,7 @@ readme = "README.md"
 license = "Apache-2.0"
 license-files = ["LICENSE", "NOTICE", "src/capwx/_vendor/hashwx/LICENSE"]
 requires-python = ">=3.10"
-authors = [{ name = "capwx contributors" }]
+authors = [{ name = "Ali Fani", email = "alifani1377@gmail.com" }]
 keywords = ["captcha", "cap", "proof-of-work", "hashwx", "bot-protection", "django"]
 classifiers = [
   "Framework :: Django",
