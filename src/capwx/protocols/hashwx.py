@@ -11,6 +11,8 @@ When wasmtime is missing, :func:`mint` and :func:`verify` raise ``CapwxError`` w
 
 from __future__ import annotations
 
+import atexit
+import gc
 import hashlib
 import importlib
 import math
@@ -18,6 +20,7 @@ import os
 import platform
 import re
 import threading
+import weakref
 from collections.abc import Mapping
 from dataclasses import dataclass
 from importlib import resources
@@ -131,40 +134,94 @@ class _Instance:
     seed_ptr: int
 
 
+class _ThreadSlot:
+    """One thread's instance, or ``None`` until that thread first uses the engine.
+
+    The thread holds the only strong reference, through its ``threading.local``. The engine holds a
+    weak one, so :meth:`HashwxEngine.release` can reach every thread's instance at exit without
+    keeping a finished thread's instance alive.
+    """
+
+    __slots__ = ("__weakref__", "inst")
+
+    def __init__(self) -> None:
+        self.inst: _Instance | None = None
+
+
 class HashwxEngine:
     """Thread-safe: one compiled Module, one Store/Instance per thread."""
 
     def __init__(self, wasm_path: str | None = None) -> None:
         wt = _wasmtime()
-        self._engine: Engine = wt.Engine()
-        self._module: Module = wt.Module(self._engine, _load_wasm_bytes(wasm_path))
+        self._engine: Engine | None = wt.Engine()
+        self._module: Module | None = wt.Module(self._engine, _load_wasm_bytes(wasm_path))
         self._local = threading.local()
+        self._slots: list[weakref.ref[_ThreadSlot]] = []
+        self._slots_lock = threading.Lock()
+        _track(self)
 
     def thread_instance(self) -> _Instance:
         """Return this thread's instance, creating and initialising it on first use."""
-        inst: _Instance | None = getattr(self._local, "inst", None)
+        slot: _ThreadSlot | None = getattr(self._local, "slot", None)
+        if slot is None:
+            slot = _ThreadSlot()
+            self._local.slot = slot
+            with self._slots_lock:
+                self._slots = [ref for ref in self._slots if ref() is not None]
+                self._slots.append(weakref.ref(slot))
+        inst = slot.inst
         if inst is None:
-            wt = _wasmtime()
-            store: Store = wt.Store(self._engine)
-            exports = wt.Instance(store, self._module, []).exports(store)
-            init = exports.get("_initialize")
-            if isinstance(init, wt.Func):
-                init(store)
-            alloc = _export(exports, "hashwx_alloc", wt.Func)
-            ctx = int(alloc(store, HASHWX_INTERPRETED))
-            if ctx <= 0:
-                raise CapwxError("hashwx_alloc failed")
-            seed = _export(exports, "hashwx_seed", wt.Func)
-            inst = _Instance(
-                store=store,
-                memory=_export(exports, "memory", wt.Memory),
-                make=_export(exports, "hashwx_make", wt.Func),
-                exec_=_export(exports, "hashwx_exec", wt.Func),
-                ctx=ctx,
-                seed_ptr=int(seed(store, ctx)),
-            )
-            self._local.inst = inst
+            inst = self._instantiate()
+            slot.inst = inst
         return inst
+
+    def _instantiate(self) -> _Instance:
+        wt = _wasmtime()
+        engine, module = self._engine, self._module
+        if engine is None or module is None:
+            raise CapwxError("HashWX engine was released at interpreter exit")
+        store: Store = wt.Store(engine)
+        exports = wt.Instance(store, module, []).exports(store)
+        init = exports.get("_initialize")
+        if isinstance(init, wt.Func):
+            init(store)
+        alloc = _export(exports, "hashwx_alloc", wt.Func)
+        ctx = int(alloc(store, HASHWX_INTERPRETED))
+        if ctx <= 0:
+            raise CapwxError("hashwx_alloc failed")
+        seed = _export(exports, "hashwx_seed", wt.Func)
+        return _Instance(
+            store=store,
+            memory=_export(exports, "memory", wt.Memory),
+            make=_export(exports, "hashwx_make", wt.Func),
+            exec_=_export(exports, "hashwx_exec", wt.Func),
+            ctx=ctx,
+            seed_ptr=int(seed(store, ctx)),
+        )
+
+    def release(self) -> None:
+        """Close this engine's wasm objects now, in dependency order. Idempotent.
+
+        The exit hook calls this; programs rarely need it. Stores go first because they reference
+        the Engine, then the Module, then the Engine. ``close()`` is wasmtime's own destructor and
+        clears its pointer, so a later ``__del__`` does nothing. Using the engine afterwards raises
+        ``CapwxError``.
+        """
+        with self._slots_lock:
+            refs = list(self._slots)
+        for ref in refs:
+            slot = ref()
+            if slot is None:
+                continue
+            inst, slot.inst = slot.inst, None
+            if inst is not None:
+                inst.store.close()
+        module, self._module = self._module, None
+        engine, self._engine = self._engine, None
+        if module is not None:
+            module.close()
+        if engine is not None:
+            engine.close()
 
     def hash(self, seed: bytes, nonce: int) -> int:
         """Return the 64-bit HashWX value for ``nonce`` under a 32-byte ``seed``."""
@@ -180,6 +237,40 @@ class HashwxEngine:
 _engines: dict[str, HashwxEngine] = {}
 _engines_lock = threading.Lock()
 _VENDORED_KEY = ""
+
+# Every engine, including ones built directly with HashwxEngine(), so the exit hook can release
+# them all. Weak, so a discarded engine is still freed normally at runtime.
+_live: weakref.WeakSet[HashwxEngine] = weakref.WeakSet()
+_live_lock = threading.Lock()
+_exit_hook_armed = False
+
+
+def _track(engine: HashwxEngine) -> None:
+    """Record ``engine`` for the exit hook. The first call registers the hook."""
+    global _exit_hook_armed
+    with _live_lock:
+        _live.add(engine)
+        if not _exit_hook_armed:
+            atexit.register(_release_all)
+            _exit_hook_armed = True
+
+
+def _release_all() -> None:
+    """atexit hook: free every engine's wasm state while wasmtime is still fully importable.
+
+    Without this, wasmtime's ``Managed.__del__`` finalizers run during interpreter teardown, after
+    its module globals are cleared, and print ``'NoneType' object is not callable``. After this
+    hook each wasmtime object is closed, so a finalizer that runs later does nothing. Using an
+    engine after this hook raises ``CapwxError``; ``get_engine`` then builds a fresh one.
+    """
+    with _live_lock:
+        engines = list(_live)
+    for engine in engines:
+        engine.release()
+    del engines
+    with _engines_lock:
+        _engines.clear()
+    gc.collect()  # finalize any cyclic garbage now, while wasmtime is still importable
 
 
 def get_engine(wasm_path: str | None = None) -> HashwxEngine:

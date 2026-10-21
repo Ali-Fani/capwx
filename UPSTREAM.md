@@ -22,9 +22,29 @@ Vendored files:
   (server wasm, copied from `core/vendor/` at the pinned commit)
 - `src/capwx/contrib/django/static/capwx/` (browser assets, written by
   `scripts/vendor_assets.py`, with `VERSIONS.json` holding sha256 of each file)
+- `third_party/hashwx/` (the unmodified HashWX source tree at the pinned commit, copied with
+  `git archive`, with `LICENSE` and `README.capwx.md`). This is the LGPL-3.0 Corresponding Source
+  offered in `NOTICE`. It is in the sdist and not in the wheel. capwx never builds or imports it.
 
 `scripts/check_dist.py` checks that a built wheel and sdist contain these files, and that each
-vendored file matches its recorded hash.
+vendored file matches its recorded hash. It also checks that the sdist has `third_party/hashwx/LICENSE`
+and that the wheel has no `third_party` path.
+
+## HashWX wasm provenance
+
+`src/capwx/_vendor/hashwx/hashwx.wasm` (and its byte-identical browser copy) is taken from Cap, which
+pins only the HashWX commit (`core/vendor/hashwx-COMMIT.txt`). Cap does not document the build steps.
+
+- The exports are the 11 functions in tevador's `CMakeLists.txt` Emscripten target, plus Emscripten
+  runtime helpers. `hashwx_seed` and the rest are upstream code in `third_party/hashwx/src/hashwx.c`.
+  No Cap shim source exists.
+- The binary is stripped (no `producers`, `name` or `target_features` section), so the compiler
+  version cannot be recovered from it.
+- The build recipe is **unknown**: the emsdk version, optimisation level and exact invocation are not
+  recorded. The likely recipe is tevador's CMake Emscripten target, which is not verified.
+- Nothing has been compiled or run. A rebuild would not be byte-identical, so verify behaviour instead.
+- The exact recipe could be requested from the Cap author. That is a suggestion only; nobody has been
+  contacted. Details are in `third_party/hashwx/README.capwx.md`.
 
 ## Deviations from upstream
 
@@ -60,7 +80,9 @@ These are the places where capwx does not match upstream output. Each one is del
    `UPSTREAM.md` and `NOTICE`.
 2. Re-run `uv run python scripts/vendor_assets.py`. It checks each npm tarball's
    sha512 against the registry's `dist.integrity` and writes `VERSIONS.json`.
-3. Re-vendor the server wasm and verify it: size, sha256 and `SHA256` file.
+3. Re-vendor the server wasm and verify it: size, sha256 and `SHA256` file. Re-copy
+   `third_party/hashwx/` from the new HashWX commit with `git archive` (no `.git`, no edits), then
+   update `third_party/hashwx/README.capwx.md`, the HashWX commit in `NOTICE`, and the pins above.
 4. Diff `core/src/*.js` between the old and new commit, then port any changes
    into `src/capwx/` (protocols, instrumentation, detect).
 5. Regenerate vectors:

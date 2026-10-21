@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "capwx"
-version = "0.1.0"
+version = "0.2.0"
 description = "Python server for the Cap CAPTCHA widget: HashWX proof-of-work, instrumentation, Django/Ninja integration"
 readme = "README.md"
 license = "Apache-2.0"
@@ -55,10 +55,12 @@ DJANGO_SETTINGS_MODULE = "tests.django_project.settings"
 [tool.ruff]
 line-length = 100
 target-version = "py310"
+# Upstream HashWX source (C and JS) is vendored for the LGPL source offer. It is not Python.
+extend-exclude = ["third_party"]
 
 [tool.pyright]
 include = ["src/capwx"]
-exclude = ["**/__pycache__", "src/capwx/contrib/django/templates"]
+exclude = ["**/__pycache__", "src/capwx/contrib/django/templates", "third_party"]
 typeCheckingMode = "strict"
 pythonVersion = "3.10"
 # Django and django-ninja ship no type information, so their imports are reported as missing

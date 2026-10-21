@@ -28,10 +28,11 @@ Checked against `https://pypi.org/pypi/wasmtime/49.0.0/json` (capwx pins `wasmti
 | Android x86_64 | `android_26_x86_64` | yes |
 | 32-bit x86 (i686), armv7, ppc64le, s390x, other | none listed | no |
 
-PyPI also lists a `py3-none-any` wasmtime 49.0.0 wheel (about 8 MB). It is not a platform wheel
-and was not installed or inspected for this document, so the table does not rely on it. On a
-platform outside the table, `pip` may pick that wheel. capwx then reports the same
-`CapwxError` if `import wasmtime` fails, but whether that wheel imports cleanly is unverified.
+PyPI also lists a `py3-none-any` wasmtime 49.0.0 wheel (about 8 MB). It was downloaded and its file
+list inspected (nothing was executed): it contains only one native library, `win32-x86_64/_wasmtime.dll`
+(Windows x64), which the platform wheels already cover. On a platform outside the table, `pip` may fall
+back to that wheel, but `import wasmtime` would then fail for lack of a native library for that platform,
+and capwx reports the same `CapwxError`.
 
 The CPU gate in `pyproject.toml` is
 `platform_machine in 'x86_64 AMD64 arm64 ARM64 aarch64'`. It is a substring test on the
@@ -81,8 +82,8 @@ If you install wasmtime yourself on a platform without a wheel (for example, bui
 capwx is pure Python: it has no compiled extension, and the wasm module is data that the Python
 code reads at runtime. Its wheel is therefore `py3-none-any`, one file for every platform.
 
-Packages that contain compiled code, such as django-cap, ship one wheel per platform. (That claim
-about django-cap was not checked for this document.)
-capwx does not need that, because the native code lives in the separate `wasmtime` dependency,
+Packages that contain compiled code ship one wheel per platform: django-cap 0.3.0, for example,
+lists about 60 wheels on PyPI (CPython 3.11 to 3.14, PyPy, Linux glibc and musl on several CPUs, macOS,
+Windows). capwx does not need that, because the native code lives in the separate `wasmtime` dependency,
 which provides its own platform wheels. That is why the marker above is needed: it controls
 whether the native dependency is installed at all.

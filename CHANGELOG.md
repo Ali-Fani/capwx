@@ -3,7 +3,7 @@
 All notable changes to this project are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
-## [Unreleased]
+## [0.2.0] - 2026-10-21
 
 ### Added
 
@@ -12,6 +12,14 @@ All notable changes to this project are documented here. The format follows
 - django-bolt integration (`capwx.contrib.bolt`): async widget routes and a `CapRequired` dependency.
   Needs Python 3.12+. Extra: `capwx[bolt]`.
 - `capwx.hashwx_available()`.
+- LGPL compliance for the vendored `hashwx.wasm`: the pinned HashWX source is shipped in the sdist
+  (`third_party/hashwx/`), `NOTICE` carries a written source offer, and `docs/licence-review.md` records
+  the open points (the original wasm build flags are not recorded upstream).
+
+### Fixed
+
+- No more `Exception ignored ... Managed.__del__` noise from wasmtime when the interpreter exits:
+  engines are released by an `atexit` hook while wasmtime is still importable.
 
 ### Changed
 

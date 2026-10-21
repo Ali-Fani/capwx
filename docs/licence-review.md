@@ -23,24 +23,50 @@ the facts, not legal advice. Get a licence review before relying on it.
    modifications: nothing in capwx forbids this; the Apache licence does not
    restrict it. **Reviewer: confirm.**
 3. Provide the Corresponding Source for the binary, or a written offer, or a
-   pointer to it (§4/§6). **Gap, see below.**
+   pointer to it (§4/§6). **Source offer: done** (`NOTICE`, written offer to
+   alifani1377@gmail.com). **Vendored source: done** (unmodified HashWX tree at
+   the pinned commit in `third_party/hashwx/`, in the sdist, not in the wheel,
+   checked by `scripts/check_dist.py`). **Build recipe: still open**, see below.
 4. Provide a way to relink/replace the library with a modified version (§4(d)):
    `hashwx_wasm_path` and the static-file override. Note that the server-side
    path is *not* hash-checked, deliberately, so a replacement is accepted.
    **Reviewer: confirm this meets "suitable shared library mechanism".**
 
+## Provenance findings (what the binary and upstream show)
+
+Checked by parsing `hashwx.wasm` directly and reading the Cap and HashWX
+repositories at the pinned commits. Full detail is in
+`third_party/hashwx/README.capwx.md`.
+
+- **No shim source exists in Cap.** `hashwx_seed` and the other extra exports
+  (`hashwx_registers`, `hashwx_memory`, `hashwx_module`, `hashwx_module_size`,
+  `hashwx_exec_begin`, `hashwx_exec_final`) are defined in tevador's own
+  `src/hashwx.c` at the pinned commit, not in Cap. The binary's export set
+  matches the `EXPORTED_FUNCTIONS` list in tevador's `CMakeLists.txt` Emscripten
+  target, plus Emscripten runtime helpers. The likely build is that target,
+  which is an inference and is not verified.
+- **Cap does not build it.** Cap's `wasm/build.js` builds only the Rust
+  `cap_wasm` package. `wasm/src/browser/hashwx.wasm` is a copy of the same
+  binary, not a build output. The Cap commit history has no build notes.
+- **The binary is stripped.** It has no `producers`, `name` or
+  `target_features` custom section, so the compiler and Emscripten versions
+  cannot be recovered from it. The only build note is a comment in Cap's
+  generated `hashwx-wasm.js`: "Built with emcc, lowered to WebAssembly 1.0
+  (MVP)". It gives no version or flags.
+- **Nothing has been compiled or executed.** The rebuild and the MVP claim are
+  unverified.
+
 ## Known gaps
 
-- **Build recipe unknown.** Upstream Cap vendors the binary and records only the
-  HashWX commit (`core/vendor/hashwx-COMMIT.txt`); it does not document the
-  compiler, flags or target used. We therefore cannot say how to rebuild this
-  exact binary from the pinned commit. Mitigation options: ask the Cap author
-  for the build steps and record them in `UPSTREAM.md`; or build our own wasm
-  from the pinned commit, publish the recipe, and verify it against the test
-  vectors (the module exports `hashwx_alloc`, `hashwx_seed`, `hashwx_make`,
-  `hashwx_exec`, `hashwx_free`, `_initialize` and has no imports).
-- **Source offer.** `NOTICE` points at the upstream repository and commit but
-  does not contain an explicit written offer of the Corresponding Source.
+- **Exact build recipe unknown (open).** The emsdk version, optimisation level,
+  exact CMake invocation and whether the `wasm-opt` lowering was run are not
+  recorded anywhere we can see. A rebuild from the pinned commit is possible
+  (`emcmake cmake` and the CMake Emscripten target), but it will not be
+  byte-identical, and that has not been tried. Options: ask the Cap author for
+  the build steps and record them in `UPSTREAM.md` (a suggestion only, nobody has
+  been contacted); or build our own wasm from the pinned commit with a pinned
+  emsdk, publish that recipe, and verify it by behaviour (the `node` interop
+  suite and the Cap vectors).
 - **Wheel and sdist metadata.** Confirm that PyPI shows the right
   classification (Apache-2.0 for the project, with LGPL-3.0 component noted).
 

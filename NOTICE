@@ -24,8 +24,26 @@ This product includes and/or is derived from the following third-party works:
    Vendored binary: src/capwx/_vendor/hashwx/hashwx.wasm (also shipped as
    static/capwx/hashwx.wasm). The licence text is in
    src/capwx/_vendor/hashwx/LICENSE and static/capwx/hashwx-LICENSE.txt.
-   The HashWX source code is not included in capwx; the wasm binary is a
-   separate file that can be replaced with a user-supplied build
-   (config option hashwx_wasm_path).
+   The wasm binary is a separate file that can be replaced with a user-supplied
+   build (config option hashwx_wasm_path, or overriding the browser static file).
+
+   Corresponding Source for the HashWX component (LGPL-3.0):
+   - The unmodified HashWX source code at the pinned commit above is included in
+     this repository and in the source distribution (sdist), in
+     third_party/hashwx/. It is not part of the wheel. See
+     third_party/hashwx/README.capwx.md for provenance, what is known and not
+     known about how the binary was built, and how to replace the binary.
+   - Upstream: https://github.com/tevador/hashwx at commit
+     74b567a31276a4c5d7cb232a5b7639467f49f961.
+   - Written offer: capwx will provide the complete Corresponding Source of the
+     HashWX component (the source above, plus any build information the project
+     holds) to any recipient who asks, at no charge, by writing to
+     alifani1377@gmail.com. This offer is valid for at least three years from the
+     date you received this distribution, and for as long as capwx distributes
+     the binary.
+   - You may replace hashwx.wasm with a modified or rebuilt version. Server side,
+     set CapConfig(hashwx_wasm_path=...). Browser side, overwrite the static file
+     static/capwx/hashwx.wasm and collect static files again. The licence text is
+     in src/capwx/_vendor/hashwx/LICENSE and in third_party/hashwx/LICENSE.
 
 Full details, pins and the re-sync procedure are in UPSTREAM.md.

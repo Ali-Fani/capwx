@@ -4,8 +4,9 @@ Usage: ``python scripts/check_dist.py [dist_dir]`` (default ``dist``). Prints ev
 exits non-zero when something is missing or a vendored file does not match its recorded hash.
 
 Checked: the server hashwx.wasm with its LICENSE, COMMIT and SHA256; the browser assets, each
-matched against ``VERSIONS.json``; the templates; the management command; ``py.typed``; and the
-LICENSE / NOTICE files in the wheel's dist-info.
+matched against ``VERSIONS.json``; the templates; the management command; ``py.typed``; the LICENSE / NOTICE
+files in the wheel's dist-info; the HashWX source snapshot (``third_party/hashwx``) in the sdist
+(the LGPL source offer); and that the wheel contains no ``third_party`` path.
 """
 
 from __future__ import annotations
@@ -20,6 +21,8 @@ from pathlib import Path
 
 STATIC = "capwx/contrib/django/static/capwx"
 VENDOR = "capwx/_vendor/hashwx"
+# Repository path (sdist only, never in the wheel) of the unmodified HashWX source snapshot.
+SOURCE_DIR = "third_party/hashwx"
 
 WHEEL_REQUIRED = (
     f"{VENDOR}/hashwx.wasm",
@@ -63,6 +66,9 @@ SDIST_REQUIRED = (
     "src/capwx/contrib/django/management/commands/capwx_check.py",
     "scripts/vendor_assets.py",
     "tests/test_challenge.py",
+    # The HashWX source offer: the LGPL-3.0 Corresponding Source for the vendored wasm.
+    f"{SOURCE_DIR}/LICENSE",
+    f"{SOURCE_DIR}/README.capwx.md",
 )
 
 
@@ -107,6 +113,12 @@ def check_wheel(path: Path) -> list[str]:
             if f"{dist_info}/{r}" not in names
         ]
         problems += _verify_or_report(lambda n: zf.read(n), path.name, names)
+        # The HashWX source snapshot is for the sdist only; it must not ride along in the wheel.
+        problems += [
+            f"{path.name}: unexpected {n} (third_party is sdist-only)"
+            for n in sorted(names)
+            if "third_party" in n.split("/")
+        ]
     return problems
 
 
