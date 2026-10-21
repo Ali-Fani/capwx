@@ -1,0 +1,44 @@
+# Build and distribution
+dist/
+build/
+*.egg-info/
+*.whl
+*.tar.gz
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# Python caches and tooling
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+.pyright/
+.mypy_cache/
+.coverage
+.coverage.*
+htmlcov/
+coverage.xml
+
+# Environment and local secrets
+.env
+.env.*
+!.env.example
+*.local
+
+# Editors and OS
+.idea/
+.vscode/
+*.swp
+.DS_Store
+Thumbs.db
+
+# Node (scripts/gen_vectors.mjs, interop tests)
+node_modules/
+package-lock.json
+
+# Playwright
+test-results/
+playwright-report/

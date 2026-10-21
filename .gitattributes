@@ -1,0 +1,4 @@
+* text=auto
+src/capwx/contrib/django/static/capwx/* -text
+src/capwx/_vendor/hashwx/* -text
+*.wasm binary

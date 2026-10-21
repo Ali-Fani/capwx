@@ -1,0 +1,31 @@
+capwx
+Copyright 2026 capwx contributors
+
+This product is licensed under the Apache License, Version 2.0 (see LICENSE).
+
+capwx is an unofficial Python implementation and is not affiliated with Cap.
+
+This product includes and/or is derived from the following third-party works:
+
+1. Cap (https://github.com/tiagozip/cap)
+   Copyright (c) tiagozip and Cap contributors.
+   Licensed under the Apache License, Version 2.0.
+   Pinned commit: 29bbe6fbe284786cdb0d4489e5040aee6042b2a4
+   Ported parts: core/src (capjs-core 0.1.5) protocol logic, instrumentation
+   generation and detection.
+   Vendored browser assets (src/capwx/contrib/django/static/capwx/):
+   cap-widget 0.1.58 (cap.min.js), @cap.js/wasm 0.0.8 (cap_wasm_bg.wasm),
+   pako 2.1.0 (pako_inflate.min.js, MIT).
+
+2. HashWX (https://github.com/tevador/hashwx)
+   Copyright (c) tevador.
+   Licensed under the GNU Lesser General Public License, Version 3.
+   Pinned commit: 74b567a31276a4c5d7cb232a5b7639467f49f961
+   Vendored binary: src/capwx/_vendor/hashwx/hashwx.wasm (also shipped as
+   static/capwx/hashwx.wasm). The licence text is in
+   src/capwx/_vendor/hashwx/LICENSE and static/capwx/hashwx-LICENSE.txt.
+   The HashWX source code is not included in capwx; the wasm binary is a
+   separate file that can be replaced with a user-supplied build
+   (config option hashwx_wasm_path).
+
+Full details, pins and the re-sync procedure are in UPSTREAM.md.

@@ -1,0 +1,74 @@
+[build-system]
+requires = ["hatchling>=1.25"]
+build-backend = "hatchling.build"
+
+[project]
+name = "capwx"
+version = "0.1.0"
+description = "Python server for the Cap CAPTCHA widget: HashWX proof-of-work, instrumentation, Django/Ninja integration"
+readme = "README.md"
+license = "Apache-2.0"
+license-files = ["LICENSE", "NOTICE", "src/capwx/_vendor/hashwx/LICENSE"]
+requires-python = ">=3.10"
+authors = [{ name = "capwx contributors" }]
+keywords = ["captcha", "cap", "proof-of-work", "hashwx", "bot-protection", "django"]
+classifiers = [
+  "Framework :: Django",
+  "Programming Language :: Python :: 3",
+  "Topic :: Security",
+  "Typing :: Typed",
+]
+dependencies = [
+  "wasmtime>=49,<50",
+  "cryptography>=42",
+]
+
+[project.optional-dependencies]
+django = ["django>=4.2"]
+ninja = ["django>=4.2", "django-ninja>=1.1"]
+redis = ["redis>=5"]
+
+[dependency-groups]
+dev = ["pytest>=8", "pytest-django>=4.8", "ruff>=0.6", "pyright>=1.1.380", "coverage>=7"]
+e2e = ["playwright>=1.45"]
+
+[tool.hatch.build.targets.sdist]
+# The design plan is internal, and the stray zero-byte "actual[v]" file is not project content.
+exclude = ["/capwx.plan.md", '/actual\[v\]']
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/capwx"]
+
+[tool.hatch.build.targets.wheel.force-include]
+"src/capwx/_vendor/hashwx/hashwx.wasm" = "capwx/_vendor/hashwx/hashwx.wasm"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+markers = ["e2e: real browser tests (playwright)", "node: needs node + capjs-core"]
+addopts = "-m 'not e2e and not node'"
+pythonpath = ["."]
+DJANGO_SETTINGS_MODULE = "tests.django_project.settings"
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+
+[tool.pyright]
+include = ["src/capwx"]
+exclude = ["**/__pycache__", "src/capwx/contrib/django/templates"]
+typeCheckingMode = "strict"
+pythonVersion = "3.10"
+# Django and django-ninja ship no type information, so their imports are reported as missing
+# stubs. That is a property of the dependencies, not of this code, so the rule is off.
+reportMissingTypeStubs = "none"
+
+[tool.coverage.run]
+source = ["src/capwx"]
+branch = true
+omit = ["src/capwx/contrib/*/templates/*", "src/capwx/_vendor/*"]
+
+[tool.coverage.report]
+show_missing = true
+skip_covered = false
+fail_under = 90
+exclude_also = ["if TYPE_CHECKING:", "raise NotImplementedError", '\.\.\.$']

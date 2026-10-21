@@ -1,0 +1,51 @@
+{
+  "files": {
+    "cap.min.js": {
+      "bytes": 50634,
+      "sha256": "97ed03b905a0bdb104f58fb971cfc1ffad72fa35c0b57dd6833f7fc3b48c77d7",
+      "source": "cap-widget@0.1.58:package/cap.min.js"
+    },
+    "cap_wasm_bg.wasm": {
+      "bytes": 22608,
+      "sha256": "e4f3c00246a775193661f9277ca1288cd310a6514de166ecc2176ccd26fb06a9",
+      "source": "@cap.js/wasm@0.0.8:package/browser/cap_wasm_bg.wasm"
+    },
+    "hashwx.wasm": {
+      "bytes": 12541,
+      "sha256": "b1a0dbb3ef444d3c7069e0a5e0a0273ffa4cf8fef62cbbe43761c02f7cd6aff5",
+      "source": "@cap.js/wasm@0.0.8:package/browser/hashwx.wasm"
+    },
+    "pako_inflate.min.js": {
+      "bytes": 21479,
+      "sha256": "fa226c8e1e3556993260e6a5c1fe94e225da59b3418a06811fdc51d308f8bb43",
+      "source": "pako@2.1.0:package/dist/pako_inflate.min.js"
+    }
+  },
+  "generated_by": "scripts/vendor_assets.py",
+  "licenses": {
+    "hashwx-LICENSE.txt": {
+      "applies_to": [
+        "hashwx.wasm"
+      ],
+      "sha256": "7d3a95e5e06978064ed3f8e2b7c8f845e7fd8a405294727cc708f94cb83b8059",
+      "source": "src/capwx/_vendor/hashwx/LICENSE"
+    }
+  },
+  "packages": {
+    "@cap.js/wasm@0.0.8": {
+      "integrity": "sha512-rX+4/v2sz4GKLnygXHOS89O7c4GM2qNQcDJP6Y2cyGwoKjg83bsfWHt1TWr9GBzHpFADvju5fvLWYds21nS8sA==",
+      "license": "Apache-2.0",
+      "tarball": "https://registry.npmjs.org/@cap.js/wasm/-/wasm-0.0.8.tgz"
+    },
+    "cap-widget@0.1.58": {
+      "integrity": "sha512-7iS/Q++AaiVvWR8xvMSxRwGWY+fV1ZADJNwPzLk4P1gibCmCbS5G6MGOtoUjsj9OxI9+0nkewW6gRsOGDCOZZA==",
+      "license": "Apache-2.0",
+      "tarball": "https://registry.npmjs.org/cap-widget/-/cap-widget-0.1.58.tgz"
+    },
+    "pako@2.1.0": {
+      "integrity": "sha512-w+eufiZ1WuJYgPXbV/PO3NCMEc3xqylkKHzp8bxp1uW4qaSNQUkwmLLEc3kKsfz8lpV1F8Ht3U1Cm+9Srog2ug==",
+      "license": "(MIT AND Zlib)",
+      "tarball": "https://registry.npmjs.org/pako/-/pako-2.1.0.tgz"
+    }
+  }
+}

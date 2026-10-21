@@ -1,0 +1,13 @@
+{% load capwx %}<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>capwx e2e</title>{% capwx_scripts %}</head>
+<body>
+<form method="post">
+  {% csrf_token %}
+  <label for="id_username">Username</label>
+  <input id="id_username" name="username" type="text" value="alice">
+  {% capwx_widget site=site %}
+  <button type="submit">Verify</button>
+</form>
+</body>
+</html>

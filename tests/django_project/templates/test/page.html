@@ -1,0 +1,11 @@
+{% load capwx %}<!doctype html>
+<html>
+<head><title>capwx test page</title>{% capwx_scripts %}</head>
+<body>
+<form method="post" action="/form/">
+  {% csrf_token %}
+  {% capwx_widget site="login" %}
+  <button type="submit">Submit</button>
+</form>
+</body>
+</html>

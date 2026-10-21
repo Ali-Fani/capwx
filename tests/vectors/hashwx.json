@@ -1,0 +1,25 @@
+{
+  "upstream_commit": "29bbe6fbe284786cdb0d4489e5040aee6042b2a4",
+  "hashwx": [
+    [
+      "This is a test seed for hashwx",
+      "0",
+      "973684176f8ee362"
+    ],
+    [
+      "This is a test seed for hashwx",
+      "123456",
+      "401983bb07d69b07"
+    ],
+    [
+      "Lorem ipsum dolor sit amet",
+      "123456",
+      "4af38d834a9a8d3d"
+    ],
+    [
+      "Lorem ipsum dolor sit amet",
+      "987654321123456789",
+      "6a8a5514432e17a3"
+    ]
+  ]
+}

@@ -1,0 +1,10 @@
+{% load capwx %}<!doctype html>
+<html>
+<head>{% capwx_scripts %}</head>
+<body>
+<form method="post">
+  {% csrf_token %}
+  {{ form.as_p }}
+</form>
+</body>
+</html>

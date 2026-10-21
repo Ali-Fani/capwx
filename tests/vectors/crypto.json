@@ -1,0 +1,45 @@
+{
+  "upstream_commit": "29bbe6fbe284786cdb0d4489e5040aee6042b2a4",
+  "secret": "test-secret-0123456789abcdef",
+  "jwt": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJmIjoyLCJuIjoiMDBmZiIsImV4cCI6MTg5MzQ1NjAwMDAwMCwiaWF0IjoxODkzNDU1NDAwMDAwLCJzayI6ImxvZ2luIn0.TLYneOrnsPtsFCEdF3UejUIGyNqz6VF4RtmGmGQ9nek",
+  "jwt_payload": {
+    "f": 2,
+    "n": "00ff",
+    "exp": 1893456000000,
+    "iat": 1893455400000,
+    "sk": "login"
+  },
+  "gcm": "qY2VrR8IXL0X8-r7UW300LgfqOPsCMh9etLDjP_oD589UOhYuuHqRvuUSDSQWNuZoSNA736tF5s83P0-Wj1KFGpsHjgYW9Tq7er59A59vGLrN-A5lv9ihRCAAqUjR28L",
+  "gcm_info": "cap:fmt2-v1",
+  "gcm_payload": {
+    "expected": [
+      {
+        "protocol": "sha256-pow",
+        "salt": "ab",
+        "target": "0000"
+      }
+    ]
+  },
+  "pow": [
+    [
+      "0",
+      "salt",
+      13
+    ],
+    [
+      "00",
+      "salt",
+      194
+    ],
+    [
+      "000a",
+      "salt",
+      13834
+    ],
+    [
+      "f",
+      "salt",
+      38
+    ]
+  ]
+}

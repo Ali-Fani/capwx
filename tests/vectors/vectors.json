@@ -1,0 +1,15 @@
+{
+  "hashWith": [[1,"webdriver",590152607],[2147483646,"[native code]",2371459876],
+               [123456789,"[object Navigator]",426332371],[987654321,"",987654321],
+               [42,"HeadlessChrome",1730379643]],
+  "domSum": [[10,20,30,74],[250,250,250,168],[-5,7,-300,-244],
+             [-2147483648,2147483647,0,0],[123,-1,99,72]],
+  "secret": "test-secret-0123456789abcdef",
+  "jwt": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJmIjoyLCJuIjoiMDBmZiIsImV4cCI6MTg5MzQ1NjAwMDAwMCwiaWF0IjoxODkzNDU1NDAwMDAwLCJzayI6ImxvZ2luIn0.TLYneOrnsPtsFCEdF3UejUIGyNqz6VF4RtmGmGQ9nek",
+  "gcm": "VFcnrw9SL2wogwj6Mh-0aE1E9tTWtlS0ak1SeYb3zlqIi-JuILOUTeLg2Gx75kJzuGXFnHKxTQZ04VKBIFtGiG7yYsXNqOUyjWmWoyGWzZQPYleOQCro_qGf3EtkrZK4",
+  "pow": [["0","salt",13],["00","salt",194],["000a","salt",13834],["f","salt",38]],
+  "hashwx": [["This is a test seed for hashwx",0,"973684176f8ee362"],
+             ["This is a test seed for hashwx",123456,"401983bb07d69b07"],
+             ["Lorem ipsum dolor sit amet",123456,"4af38d834a9a8d3d"],
+             ["Lorem ipsum dolor sit amet",987654321123456789,"6a8a5514432e17a3"]]
+}

@@ -1,0 +1,14 @@
+{% load static %}{% static 'capwx/hashwx.wasm' as hashwx_url %}{% static 'capwx/cap_wasm_bg.wasm' as wasm_url %}{% static 'capwx/pako_inflate.min.js' as pako_url %}{% static 'capwx/cap.min.js' as widget_url %}
+<script{% if nonce %} nonce="{{ nonce }}"{% endif %}>
+  window.CAP_CUSTOM_HASHWX_URL = "{{ hashwx_url|escapejs }}";
+  window.CAP_CUSTOM_WASM_URL = "{{ wasm_url|escapejs }}";
+  window.CAP_PAKO_URL = "{{ pako_url|escapejs }}";
+{% if nonce %}  window.CAP_SCRIPT_NONCE = "{{ nonce|escapejs }}";
+  window.CAP_CSS_NONCE = "{{ nonce|escapejs }}";
+{% endif %}{% if csrf_fetch %}  window.CAP_CUSTOM_FETCH = function (url, init) {
+    var opts = Object.assign({}, init || {}, { credentials: "same-origin" });
+    opts.headers = Object.assign({}, (init && init.headers) || {}, { "X-CSRFToken": "{{ csrf_token|escapejs }}" });
+    return fetch(url, opts);
+  };
+{% endif %}</script>
+<script src="{{ widget_url }}" defer{% if nonce %} nonce="{{ nonce }}"{% endif %}></script>
