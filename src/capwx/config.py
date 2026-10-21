@@ -73,6 +73,9 @@ class InstrumentationOptions:
 @dataclass(frozen=True)
 class CapConfig:
     secret: str | bytes = field(repr=False)  # >= 16 bytes, else CapwxError; never in repr()
+    # The default stays HashWX. A platform without a wasmtime wheel must opt into
+    # ("sha256-pow", "instrumentation") explicitly, because a silent fallback would weaken the
+    # challenge without anyone noticing. See docs/platforms.md and ``capwx.hashwx_available()``.
     protocols: tuple[str, ...] = ("hashwx", "instrumentation")  # also "sha256-pow"
     hashwx_difficulty: int = 1_000_000  # 1..1_000_000_000
     hashwx_challenge_count: int = 4  # 1..64

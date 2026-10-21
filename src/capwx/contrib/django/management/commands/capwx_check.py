@@ -10,6 +10,9 @@ Solving here is a stand-in for the browser: instrumentation is answered from the
 so it checks the server pipeline, not the browser probe. A site with BLOCK_AUTOMATED_BROWSERS
 cannot pass that way, so its check mints without the instrumentation protocol.
 
+Without the wasmtime package (no wheel for this platform), checks 1 and 2 are reported as
+``[skip]`` when no site uses HashWX. If a site does use HashWX, that is a failure.
+
 Exits non-zero (``CommandError``) on any failure.
 """
 
@@ -23,12 +26,13 @@ from typing import Any
 from django.contrib.staticfiles import finders
 from django.core.management.base import BaseCommand, CommandError
 
-from capwx import create_challenge, redeem, validate_token
+from capwx import create_challenge, hashwx_available, redeem, validate_token
 from capwx._crypto import decrypt_gcm, jwt_verify
 from capwx._types import JsonDict, as_json_dict
 from capwx.config import CapConfig
 from capwx.contrib.django.conf import SiteConf, get_conf
 from capwx.protocols import hashwx
+from capwx.protocols.hashwx import missing_wasmtime_message
 
 _FORMAT_INFO = "cap:fmt2-v1"
 _U64 = (1 << 64) - 1
@@ -103,9 +107,22 @@ class Command(BaseCommand):
 
     def handle(self, *args: Any, **options: Any) -> None:
         failures: list[str] = []
-        self._check_wasm(failures)
-        self._check_vectors(failures)
         conf = get_conf()
+        hashwx_sites = [
+            name for name, site in conf.sites.items() if "hashwx" in site.config.protocols
+        ]
+        if not hashwx_available():
+            # The wasm and its vectors need wasmtime. Without it they only matter to a site that
+            # uses HashWX, and that site is a configuration error.
+            if hashwx_sites:
+                failures.append(
+                    f"sites {', '.join(hashwx_sites)} use hashwx: {missing_wasmtime_message()}"
+                )
+            else:
+                self._skip("hashwx", "wasmtime is not installed here and no site uses HashWX")
+        else:
+            self._check_wasm(failures)
+            self._check_vectors(failures)
         for name in conf.sites:
             self._check_site(conf.sites[name], conf.store, failures)
         if failures:
@@ -198,3 +215,7 @@ class Command(BaseCommand):
     def _line(self, label: str, ok: bool, detail: str) -> None:
         mark = "ok  " if ok else "FAIL"
         self._write(self.stdout, f"[{mark}] {label}: {detail}")
+
+    def _skip(self, label: str, detail: str) -> None:
+        """A check that does not apply here. It is reported but never counts as a failure."""
+        self._write(self.stdout, f"[skip] {label}: {detail}")

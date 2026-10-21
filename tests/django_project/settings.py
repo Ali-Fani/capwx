@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from pathlib import Path
 
+from capwx import hashwx_available
+
 BASE_DIR = Path(__file__).resolve().parent
 
 SECRET_KEY = "django-insecure-capwx-tests-only-not-for-production"
@@ -49,11 +51,23 @@ STATIC_URL = "/static/"
 USE_TZ = True
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
+# Without a wasmtime wheel (see docs/platforms.md) a HashWX site would fail at startup, so the test
+# project then defaults to sha256-pow. The suite still runs there; the HashWX tests are the ones
+# that need wasmtime.
+_DEFAULT_PROTOCOLS = (
+    ["hashwx", "instrumentation"]
+    if hashwx_available()
+    else [
+        "sha256-pow",
+        "instrumentation",
+    ]
+)
+
 CAPWX = {
     "SECRET": "capwx-test-secret-0123456789abcdef",
     "STORE": "capwx.stores.django_cache.DjangoCacheStore",
     "STORE_OPTIONS": {"alias": "default"},
-    "PROTOCOLS": ["hashwx", "instrumentation"],
+    "PROTOCOLS": _DEFAULT_PROTOCOLS,
     "HASHWX_DIFFICULTY": 1000,  # 4 challenges of d=250: a few hundred hashes each
     "CSRF_EXEMPT": True,
     "DIFFICULTY_HOOK": "tests.django_project.hooks.difficulty",

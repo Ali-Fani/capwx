@@ -3,9 +3,25 @@
 All notable changes to this project are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
-## [0.1.0] - Unreleased
+## [Unreleased]
 
-First release. Pre-release until a `v0.1.0` tag is published to PyPI.
+### Added
+
+- Django REST Framework integration (`capwx.contrib.drf`): widget endpoints, `IsCapVerified` /
+  `cap_permission` and `CapTokenField`. Extra: `capwx[drf]`.
+- django-bolt integration (`capwx.contrib.bolt`): async widget routes and a `CapRequired` dependency.
+  Needs Python 3.12+. Extra: `capwx[bolt]`.
+- `capwx.hashwx_available()`.
+
+### Changed
+
+- `wasmtime` is now only required on platforms it ships wheels for (x86-64 and ARM64). Elsewhere
+  `capwx` installs and runs `sha256-pow` and `instrumentation`; HashWX raises a clear `CapwxError`.
+  Django `ready()` and `capwx_check` handle this case.
+
+## [0.1.0] - 2026-10-21
+
+First release.
 
 ### Added
 

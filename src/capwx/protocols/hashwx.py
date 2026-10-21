@@ -1,29 +1,36 @@
 """capwx.protocols.hashwx: HashWX mint/verify and wasmtime engine (M5).
 
 Port of upstream ``core/src/hashwx.js`` (``mintHashwxChallenges``, ``verifyHashwxSolution``).
-``verify`` never raises on any input; bad input yields ``False``.
+``verify`` never raises on bad client input; it yields ``False``.
 
-The wasmtime import lives here only; other modules import this one lazily.
+The wasmtime package is imported lazily, on first use, by :func:`_wasmtime`. Importing this module
+never loads it, so platforms without a wasmtime wheel can still import capwx and use sha256-pow.
+When wasmtime is missing, :func:`mint` and :func:`verify` raise ``CapwxError`` with the fix
+(see :func:`missing_wasmtime_message`). Other modules import this one lazily.
 """
 
 from __future__ import annotations
 
 import hashlib
+import importlib
 import math
 import os
+import platform
 import re
 import threading
 from collections.abc import Mapping
 from dataclasses import dataclass
 from importlib import resources
 from pathlib import Path
-from typing import TypeGuard, TypeVar
-
-from wasmtime import Engine, Func, Instance, Memory, Module, Store
+from types import ModuleType
+from typing import TYPE_CHECKING, TypeGuard, TypeVar
 
 from capwx._types import JsonDict, as_json_dict
 from capwx.config import CapConfig
 from capwx.errors import CapwxError
+
+if TYPE_CHECKING:  # annotations only; the runtime import is _wasmtime()
+    from wasmtime import Engine, Func, Memory, Module, Store
 
 PROTOCOL = "hashwx"
 U64_MAX = (1 << 64) - 1
@@ -43,6 +50,42 @@ _VENDOR_WASM = "hashwx.wasm"
 _VENDOR_SHA256 = "SHA256"
 
 _T = TypeVar("_T")
+
+
+def missing_wasmtime_message(cause: BaseException | None = None) -> str:
+    """The actionable error text used whenever the wasmtime package cannot be loaded."""
+    text = (
+        "HashWX needs the `wasmtime` package, which has no wheel for this platform/arch "
+        f"({platform.machine()}). Use protocols=('sha256-pow','instrumentation') or install "
+        "wasmtime manually."
+    )
+    if cause is not None:
+        text += f" (import failed: {cause})"
+    return text
+
+
+def _wasmtime() -> ModuleType:
+    """Return the ``wasmtime`` module, or raise ``CapwxError`` if it cannot be imported.
+
+    The result is not cached on purpose. A successful import is a ``sys.modules`` lookup, and a
+    failed import must keep failing, so every call on an unsupported platform gets the same error.
+    """
+    try:
+        return importlib.import_module("wasmtime")
+    except Exception as exc:  # a broken native library counts as unavailable too
+        raise CapwxError(missing_wasmtime_message(exc)) from exc
+
+
+def hashwx_available() -> bool:
+    """True iff the ``wasmtime`` package imports here, so HashWX can mint and verify.
+
+    Never raises. It does not compile the vendored wasm; :func:`hashwx_ready` still does that.
+    """
+    try:
+        _wasmtime()
+    except CapwxError:
+        return False
+    return True
 
 
 def _read_vendored_wasm() -> bytes:
@@ -92,29 +135,31 @@ class HashwxEngine:
     """Thread-safe: one compiled Module, one Store/Instance per thread."""
 
     def __init__(self, wasm_path: str | None = None) -> None:
-        self._engine = Engine()
-        self._module = Module(self._engine, _load_wasm_bytes(wasm_path))
+        wt = _wasmtime()
+        self._engine: Engine = wt.Engine()
+        self._module: Module = wt.Module(self._engine, _load_wasm_bytes(wasm_path))
         self._local = threading.local()
 
     def thread_instance(self) -> _Instance:
         """Return this thread's instance, creating and initialising it on first use."""
         inst: _Instance | None = getattr(self._local, "inst", None)
         if inst is None:
-            store = Store(self._engine)
-            exports = Instance(store, self._module, []).exports(store)
+            wt = _wasmtime()
+            store: Store = wt.Store(self._engine)
+            exports = wt.Instance(store, self._module, []).exports(store)
             init = exports.get("_initialize")
-            if isinstance(init, Func):
+            if isinstance(init, wt.Func):
                 init(store)
-            alloc = _export(exports, "hashwx_alloc", Func)
+            alloc = _export(exports, "hashwx_alloc", wt.Func)
             ctx = int(alloc(store, HASHWX_INTERPRETED))
             if ctx <= 0:
                 raise CapwxError("hashwx_alloc failed")
-            seed = _export(exports, "hashwx_seed", Func)
+            seed = _export(exports, "hashwx_seed", wt.Func)
             inst = _Instance(
                 store=store,
-                memory=_export(exports, "memory", Memory),
-                make=_export(exports, "hashwx_make", Func),
-                exec_=_export(exports, "hashwx_exec", Func),
+                memory=_export(exports, "memory", wt.Memory),
+                make=_export(exports, "hashwx_make", wt.Func),
+                exec_=_export(exports, "hashwx_exec", wt.Func),
                 ctx=ctx,
                 seed_ptr=int(seed(store, ctx)),
             )
@@ -162,7 +207,12 @@ def _js_round(x: float) -> int:
 
 
 def mint(config: CapConfig) -> list[tuple[JsonDict, JsonDict]]:
-    """Return ``[(public_payload, expected), ...]`` for ``config.hashwx_challenge_count`` challenges."""
+    """Return ``[(public_payload, expected), ...]`` for ``config.hashwx_challenge_count`` challenges.
+
+    Raises ``CapwxError`` when wasmtime is unavailable. Config is server-controlled, so this is a
+    deployment error, and minting challenges the server cannot verify would only fail later.
+    """
+    _wasmtime()
     each = max(1, _js_round(config.hashwx_difficulty / config.hashwx_challenge_count))
     out: list[tuple[JsonDict, JsonDict]] = []
     for _ in range(config.hashwx_challenge_count):
@@ -197,9 +247,17 @@ def _valid_int(value: object, lo: int, hi: int | None) -> TypeGuard[int]:
 def verify(expected: object, solution: object, *, engine: HashwxEngine | None = None) -> bool:
     """True iff ``solution["nonce"]`` hashes to at most ``U64_MAX // d`` for the challenge.
 
-    Never raises: any malformed input or engine failure returns False. ``engine`` selects a
-    specific wasm (e.g. ``get_engine(config.hashwx_wasm_path)``); default is the vendored one.
+    Malformed input and wasm evaluation failures return False, so client input never raises.
+    ``engine`` selects a specific wasm (e.g. ``get_engine(config.hashwx_wasm_path)``); the default
+    is the vendored one.
+
+    Raises ``CapwxError`` when wasmtime is unavailable, even for malformed input. The decision is
+    deliberate. The check cannot come from client input: ``redeem`` only passes an ``expected``
+    entry decrypted from a token the server signed, so a hashwx entry reaches here only if this
+    server (or one sharing its secret) minted it. Returning False would reject a correct solution
+    and hide the misconfiguration, so the error surfaces instead.
     """
+    _wasmtime()
     try:
         exp = as_json_dict(expected)
         sol = as_json_dict(solution)

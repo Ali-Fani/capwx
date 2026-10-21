@@ -44,17 +44,22 @@ Upstream pins (details in [UPSTREAM.md](UPSTREAM.md)):
 pip install capwx                 # core: wasmtime and cryptography
 pip install "capwx[django]"       # Django integration
 pip install "capwx[ninja]"        # Django Ninja integration (also pulls in Django)
+pip install "capwx[drf]"          # Django REST Framework integration (also pulls in Django)
+pip install "capwx[bolt]"         # django-bolt integration (Python 3.12+; also pulls in Django)
 pip install "capwx[redis]"        # RedisStore (you bring the redis-py client)
 ```
 
-With uv: `uv add "capwx[django,ninja,redis]"`.
+With uv: `uv add "capwx[django,ninja,drf,bolt,redis]"`.
 
-Python 3.10 to 3.14. The core needs wasmtime, which ships wheels for Linux, macOS and Windows.
+Python 3.10 to 3.14. `capwx` is pure Python and ships one universal wheel. HashWX needs wasmtime, which
+is installed automatically on x86-64 and ARM64 Linux, macOS and Windows. On other CPUs (32-bit, armv7,
+ppc64le, s390x) the package still installs and `sha256-pow` and `instrumentation` work; see
+[docs/platforms.md](docs/platforms.md).
 
 For development from a checkout:
 
 ```bash
-uv sync --group dev --extra django --extra ninja
+uv sync --group dev --extra django --extra ninja --extra drf --extra bolt
 uv run pytest
 ```
 
@@ -229,6 +234,32 @@ request.
 Without `install(api)`, the failure body is ninja's default `{"detail": "captcha_required"}` with
 status 403. Request body schemas are documented in OpenAPI only. They do not validate the request,
 because the view parses the raw body itself.
+
+## Django REST Framework
+
+```python
+# urls.py
+path("cap/", include("capwx.contrib.drf.urls")),  # widget endpoint: /cap/<site>/
+
+# a protected view
+from capwx.contrib.drf import cap_permission
+
+class OrderView(APIView):
+    permission_classes = [cap_permission(site="login")]
+```
+
+Also provides `CapTokenField` for serializers. Full guide: [docs/drf.md](docs/drf.md).
+
+## django-bolt
+
+```python
+from capwx.contrib.bolt import CapRequired, install
+
+install(api, prefix="/cap")  # POST /cap/{site}/challenge, /redeem, /siteverify
+login_cap = CapRequired(site="login")  # use as Depends(login_cap.check)
+```
+
+Needs Python 3.12+ and same-origin use (no CORS preflight). Full guide: [docs/bolt.md](docs/bolt.md).
 
 ## Configuration reference
 

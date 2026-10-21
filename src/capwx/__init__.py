@@ -25,11 +25,23 @@ __version__ = "0.1.0"
 def hashwx_ready(wasm_path: str | None = None) -> None:
     """Force HashWX engine initialisation (imports wasmtime). Call at application startup.
 
-    Raises ``CapwxError`` if the vendored wasm is missing, tampered with, or cannot be instantiated.
+    Raises ``CapwxError`` if wasmtime is unavailable, the vendored wasm is missing, tampered with,
+    or cannot be instantiated.
     """
     from capwx.protocols.hashwx import hashwx_ready as _ready
 
     _ready(wasm_path)
+
+
+def hashwx_available() -> bool:
+    """True iff the wasmtime package can be imported, so HashWX challenges can run here.
+
+    Use it at startup to choose protocols, for example ``("sha256-pow", "instrumentation")`` when
+    it returns False. Never raises, and it does not load the wasm.
+    """
+    from capwx.protocols.hashwx import hashwx_available as _available
+
+    return _available()
 
 
 __all__ = [
@@ -44,6 +56,7 @@ __all__ = [
     "aredeem",
     "avalidate_token",
     "create_challenge",
+    "hashwx_available",
     "hashwx_ready",
     "redeem",
     "set_event_callback",

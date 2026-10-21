@@ -16,7 +16,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: astral-sh/setup-uv@v6
       - name: Sync dependencies
-        run: uv sync --group dev --extra django --extra ninja
+        run: uv sync --group dev --extra django --extra ninja --extra drf --extra bolt
       - name: ruff check
         run: uv run ruff check .
       - name: ruff format check
@@ -38,11 +38,26 @@ jobs:
       - name: Install Python ${{ matrix.python }}
         run: uv python install ${{ matrix.python }}
       - name: Sync dependencies
-        run: uv sync --group dev --extra django --extra ninja --python ${{ matrix.python }}
+        run: uv sync --group dev --extra django --extra ninja --extra drf --extra bolt --python ${{ matrix.python }}
       - name: "Unit tests with coverage (fails under 90% on src/capwx)"
         run: |
           uv run --python ${{ matrix.python }} coverage run -m pytest
           uv run coverage report
+
+  unit-no-wasmtime:
+    # Platforms without a wasmtime wheel: capwx must import and run sha256-pow without it.
+    name: unit without wasmtime (ubuntu)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+      - name: Sync dependencies
+        run: uv sync --group dev --extra django
+      - name: Uninstall wasmtime
+        run: uv pip uninstall wasmtime
+      # --no-sync: a plain `uv run` would reinstall wasmtime from the lock file first.
+      - name: Sha256-only tests
+        run: uv run --no-sync pytest -q tests/test_no_wasmtime.py tests/test_sha256_pow.py tests/test_crypto.py tests/test_tokens.py
 
   redis:
     name: unit with Redis (ubuntu)
@@ -59,7 +74,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: astral-sh/setup-uv@v6
       - name: Sync dependencies
-        run: uv sync --group dev --extra django --extra ninja --extra redis
+        run: uv sync --group dev --extra django --extra ninja --extra drf --extra bolt --extra redis
       - name: Redis store tests (not skipped here)
         run: uv run pytest tests/test_stores.py -v
 
@@ -70,7 +85,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: astral-sh/setup-uv@v6
       - name: Sync dependencies
-        run: uv sync --group dev --group e2e --extra django --extra ninja
+        run: uv sync --group dev --group e2e --extra django --extra ninja --extra drf --extra bolt
       - name: Install Chromium
         run: uv run playwright install --with-deps chromium
       - name: Browser e2e tests (real cap-widget)
@@ -86,6 +101,6 @@ jobs:
         with:
           node-version: "22"
       - name: Sync dependencies
-        run: uv sync --group dev --extra django --extra ninja
+        run: uv sync --group dev --extra django --extra ninja --extra drf --extra bolt
       - name: Node interop tests (capjs-core installed in a temp dir by the test)
         run: uv run pytest -m node tests/test_interop_node.py -v
