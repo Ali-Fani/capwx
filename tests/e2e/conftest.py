@@ -13,6 +13,7 @@
 
 from __future__ import annotations
 
+import importlib.util
 import os
 from collections.abc import Iterator
 from pathlib import Path
@@ -21,6 +22,10 @@ from typing import Any
 import pytest
 
 from tests.e2e.support import BASE_HOST, Recorder
+
+# Playwright is an optional dev dependency (the `e2e` group). Without it the browser test
+# module cannot even be imported, so skip collecting it instead of erroring.
+collect_ignore = [] if importlib.util.find_spec("playwright") else ["test_browser.py"]
 
 # Records widget events in the page. Capture phase on window sees non-bubbling CustomEvents
 # dispatched on <cap-widget>.
