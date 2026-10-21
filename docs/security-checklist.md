@@ -1,6 +1,6 @@
 # Security checklist (plan §15)
 
-Review for the 0.1.0 release, re-checked for 0.2.0. Each §15 item is checked against the code and the tests. Paths are
+Review for the 0.1.0 release, re-checked for the 0.2.x series. Each §15 item is checked against the code and the tests. Paths are
 relative to the repository root. "Fixed" means the review found a gap, the code changed, and a test
 now pins the fix.
 

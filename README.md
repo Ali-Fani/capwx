@@ -7,7 +7,7 @@ integration.
 > **Unofficial.** `capwx` is an independent port. It is not affiliated with, endorsed by, or
 > supported by Cap or its authors.
 
-**Status: 0.2.0, beta.** Published on PyPI as [`capwx`](https://pypi.org/project/capwx/). The API may
+**Status: 0.2.1, beta.** Published on PyPI as [`capwx`](https://pypi.org/project/capwx/). The API may
 still change in minor releases; changes are listed in the [changelog](CHANGELOG.md).
 
 ## What it is

@@ -9,6 +9,7 @@ from __future__ import annotations
 import asyncio
 import logging
 import math
+import re
 import subprocess
 import sys
 from typing import Any
@@ -670,4 +671,4 @@ print(r.success, 'wasmtime' in sys.modules, 'capwx.protocols.hashwx' in sys.modu
 def test_package_exports() -> None:
     for name in capwx.__all__:
         assert hasattr(capwx, name), name
-    assert capwx.__version__ == "0.2.0"
+    assert re.fullmatch(r"\d+\.\d+\.\d+", capwx.__version__)

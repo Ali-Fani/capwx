@@ -3,6 +3,18 @@
 All notable changes to this project are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [0.2.1] - 2026-10-21
+
+### Fixed
+
+- Documentation only: the README, `SECURITY.md` and the security checklist still described the package
+  as "0.1.0, pre-release, not on PyPI yet" on the 0.2.0 project page. They now describe 0.2.x.
+
+### Added
+
+- `CLAUDE.md` project guidelines with a release checklist, and `tests/test_release_consistency.py`, which
+  fails CI when the version, changelog, README status or supported-versions table disagree.
+
 ## [0.2.0] - 2026-10-21
 
 ### Added
