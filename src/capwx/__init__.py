@@ -19,7 +19,7 @@ from capwx.errors import CapwxError, Reason
 from capwx.stores.memory import MemoryStore
 from capwx.tokens import avalidate_token, siteverify, validate_token
 
-__version__ = "0.2.1"
+__version__ = "0.3.0"
 
 
 def hashwx_ready(wasm_path: str | None = None) -> None:

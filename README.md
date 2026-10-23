@@ -7,7 +7,7 @@ integration.
 > **Unofficial.** `capwx` is an independent port. It is not affiliated with, endorsed by, or
 > supported by Cap or its authors.
 
-**Status: 0.2.1, beta.** Published on PyPI as [`capwx`](https://pypi.org/project/capwx/). The API may
+**Status: 0.3.0, beta.** Published on PyPI as [`capwx`](https://pypi.org/project/capwx/). The API may
 still change in minor releases; changes are listed in the [changelog](CHANGELOG.md).
 
 ## What it is
@@ -426,6 +426,8 @@ out:
 - Stateless tokens can be replayed until they expire.
 - The database cache backend does not give single use under concurrency. Use Redis.
 - A replacement `hashwx_wasm_path` is not hash-checked.
+- On a page whose CSP has no `'unsafe-eval'`, `instrumentation` fails with `instr_csp_eval_blocked`
+  unless `allow_csp_eval_blocked` is set. See [Content Security Policy](#content-security-policy).
 - Obfuscation levels 8 to 10 are clamped to 7, and levels 4 to 7 differ from upstream's output.
 - The Node interop tests (`pytest -m node`) need `npm` and install `capjs-core` in a temp directory.
   The browser tests (`pytest -m e2e`) need Chromium.

@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "capwx"
-version = "0.2.1"
+version = "0.3.0"
 description = "Python server for the Cap CAPTCHA widget: HashWX proof-of-work, instrumentation, Django/Ninja integration"
 readme = "README.md"
 license = "Apache-2.0"
