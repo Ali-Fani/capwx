@@ -13,8 +13,9 @@ reproduce. We aim to acknowledge reports within 5 working days.
 
 | Version | Supported |
 |---|---|
-| 0.2.x | Yes |
-| 0.1.x | Upgrade to 0.2.x |
+| 0.3.x | Yes |
+| 0.2.x | Upgrade to 0.3.x |
+| 0.1.x | Upgrade to 0.3.x |
 
 ## Handling secrets
 
