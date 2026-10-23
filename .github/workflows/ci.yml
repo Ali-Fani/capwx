@@ -11,10 +11,10 @@ permissions:
 jobs:
   lint:
     name: ruff and pyright
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
-      - uses: astral-sh/setup-uv@v6
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v10.3.2
       - name: Sync dependencies
         run: uv sync --group dev --extra django --extra ninja --extra drf --extra bolt
       - name: ruff check
@@ -30,11 +30,11 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, macos-latest, windows-latest]
+        os: [ubuntu-24.04, macos-latest, windows-latest]
         python: ["3.10", "3.11", "3.12", "3.13", "3.14"]
     steps:
-      - uses: actions/checkout@v4
-      - uses: astral-sh/setup-uv@v6
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v10.3.2
       - name: Install Python ${{ matrix.python }}
         run: uv python install ${{ matrix.python }}
       - name: Sync dependencies
@@ -47,10 +47,10 @@ jobs:
   unit-no-wasmtime:
     # Platforms without a wasmtime wheel: capwx must import and run sha256-pow without it.
     name: unit without wasmtime (ubuntu)
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
-      - uses: astral-sh/setup-uv@v6
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v10.3.2
       - name: Sync dependencies
         run: uv sync --group dev --extra django
       - name: Uninstall wasmtime
@@ -61,7 +61,7 @@ jobs:
 
   redis:
     name: unit with Redis (ubuntu)
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     services:
       redis:
         image: redis:7
@@ -71,8 +71,8 @@ jobs:
     env:
       REDIS_URL: redis://localhost:6379/0
     steps:
-      - uses: actions/checkout@v4
-      - uses: astral-sh/setup-uv@v6
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v10.3.2
       - name: Sync dependencies
         run: uv sync --group dev --extra django --extra ninja --extra drf --extra bolt --extra redis
       - name: Redis store tests (not skipped here)
@@ -80,10 +80,10 @@ jobs:
 
   e2e:
     name: browser e2e (chromium)
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
-      - uses: astral-sh/setup-uv@v6
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v10.3.2
       - name: Sync dependencies
         run: uv sync --group dev --group e2e --extra django --extra ninja --extra drf --extra bolt
       - name: Install Chromium
@@ -93,11 +93,11 @@ jobs:
 
   node:
     name: node interop (node 22)
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
-      - uses: astral-sh/setup-uv@v6
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v10.3.2
+      - uses: actions/setup-node@v7
         with:
           node-version: "22"
       - name: Sync dependencies
