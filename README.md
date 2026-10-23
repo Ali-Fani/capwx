@@ -290,13 +290,14 @@ rejected wherever an integer is expected.
 | `instrumentation` | `InstrumentationOptions()` | see below | |
 | `hashwx_wasm_path` | `None` | `str` or `None` | Path to a replacement HashWX wasm. When set, the file is used as given and is not hash-checked. |
 
-`InstrumentationOptions(enabled=True, block_automated_browsers=False, obfuscation_level=3)`:
+`InstrumentationOptions(enabled=True, block_automated_browsers=False, obfuscation_level=3, allow_csp_eval_blocked=False)`:
 
 | Field | Default | Bounds | Notes |
 |---|---|---|---|
 | `enabled` | `True` | bool | `False` skips the instrumentation challenge at mint time. |
 | `block_automated_browsers` | `False` | bool | Fails the challenge when the probe finds automation. Without it the probe only adds risk flags. |
 | `obfuscation_level` | `3` | 1 to 10 | See "Obfuscation levels" below. |
+| `allow_csp_eval_blocked` | `False` | bool | Accept a probe that ran under a CSP without `'unsafe-eval'`. See "Content Security Policy" below. |
 
 **The sha256 salt length.** The browser's sha256 solver (`cap_wasm_bg.wasm`) only matches messages
 under 56 bytes, which is the salt plus the decimal nonce. Salts of about 27 bytes or more hang the
@@ -309,7 +310,7 @@ solver in the widget. Upstream's 32-byte salt hangs for that reason, so capwx de
 |---|---|---|
 | `SECRET` | required, global only | As `CapConfig.secret`. Do not reuse `DJANGO SECRET_KEY`. |
 | `SITES` | `{}` | Per-site overrides, keyed by site name. The name `"default"` always exists. Names match `[A-Za-z0-9_.-]{1,64}`. |
-| `SITES[name]` | | Any `CapConfig` field in UPPER_CASE (for example `HASHWX_DIFFICULTY`), plus `INSTRUMENTATION` (a dict with `ENABLED`, `BLOCK_AUTOMATED_BROWSERS`, `OBFUSCATION_LEVEL`) and `SITE_SECRET`. |
+| `SITES[name]` | | Any `CapConfig` field in UPPER_CASE (for example `HASHWX_DIFFICULTY`), plus `INSTRUMENTATION` (a dict with `ENABLED`, `BLOCK_AUTOMATED_BROWSERS`, `OBFUSCATION_LEVEL`, `ALLOW_CSP_EVAL_BLOCKED`) and `SITE_SECRET`. |
 | `SITE_SECRET` | none | Per site. When set, `/siteverify` accepts this secret. Must be a non-empty string. |
 | Top-level `CapConfig` fields | `CapConfig` defaults | For example `PROTOCOLS`, `TOKEN_TTL_MS`. A site entry overrides them. |
 | `STORE` | `capwx.stores.django_cache.DjangoCacheStore` | A dotted path (built with `STORE_OPTIONS` as keyword arguments) or a store instance. |
@@ -389,6 +390,22 @@ The HashWX C source is not included in capwx, and capwx does not link to a HashW
 replace the server wasm with your own build through `hashwx_wasm_path`. The browser assets are
 Apache-2.0 (`cap-widget`, `@cap.js/wasm`) and MIT (`pako`). See [NOTICE](NOTICE) and
 [UPSTREAM.md](UPSTREAM.md). This section is not legal advice.
+
+## Content Security Policy
+
+The widget needs `'wasm-unsafe-eval'` in `script-src` (for the wasm solvers) and `worker-src blob:`.
+It does not need `'unsafe-eval'`, but the instrumentation probe runs `eval` and `new Function` checks,
+which a page CSP without `'unsafe-eval'` blocks. The probe detects this, skips those checks and
+reports it. By default the server then rejects the redeem with `instr_csp_eval_blocked`, because a
+bot could fake the same report to skip the eval checks.
+
+Pick one of these:
+
+- Add `'unsafe-eval'` to `script-src`.
+- Set `allow_csp_eval_blocked` (Django: `INSTRUMENTATION: {"ALLOW_CSP_EVAL_BLOCKED": True}`). The
+  challenge is accepted with the risk flag `csp_eval_blocked`. Anti-emulation is weaker: the probe
+  can no longer tell a real browser from an emulator by its `eval` behaviour.
+- Use `PROTOCOLS: ["hashwx"]` and skip instrumentation.
 
 ## Obfuscation levels
 

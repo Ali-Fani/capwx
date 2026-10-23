@@ -54,6 +54,8 @@ def mint(config: CapConfig, *, expires_ms: int | None = None) -> list[tuple[Json
         "expectedVals": gen["expected_vals"],
         "vars": gen["vars"],
         "blockAutomatedBrowsers": gen["block_automated_browsers"],
+        # capwx-only: whether a probe that reports a CSP-blocked eval is accepted (see verify.py).
+        "allowCspEvalBlocked": opts.allow_csp_eval_blocked,
         "expires": expires,
     }
     return [({"blob": gen["blob"]}, {"protocol": "instrumentation", "instrMeta": meta})]

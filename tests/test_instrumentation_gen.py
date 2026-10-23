@@ -103,6 +103,35 @@ def test_block_flag_is_carried_through():
     assert "blocked: true" not in _inflate(plain["blob"])
 
 
+_CE_DECL_RE = re.compile(r"var (\w+)=\(function\(\)\{try\{\(0,eval\)\('1'\);(.*?)\}\)\(\);")
+
+
+def _ce_name_and_decl(script):
+    match = _CE_DECL_RE.search(script)
+    assert match, "the CSP eval probe is missing"
+    return match.group(1), match.group(0)
+
+
+def test_script_detects_csp_blocked_eval_and_reports_it():
+    script = _inflate(generate_instrumentation({"obfuscation_level": 1})["blob"])
+    name, decl = _ce_name_and_decl(script)
+    assert "instanceof EvalError" in decl
+    assert re.search(rf"ts:Date\.now\(\),ce:{name}\}}", script)
+
+
+def test_eval_dependent_env_checks_are_guarded_by_the_csp_flag():
+    script = _inflate(generate_instrumentation({"obfuscation_level": 1})["blob"])
+    name, _ = _ce_name_and_decl(script)
+    # new Function, (0, eval)('this') and the eval-secret check: exactly these three are guarded
+    assert len(re.findall(rf"if \(!{name}\) \{{", script)) == 3
+
+
+@pytest.mark.parametrize("level", [1, 4])
+def test_csp_flag_token_is_filled_everywhere(level):
+    script = _inflate(generate_instrumentation({"obfuscation_level": level})["blob"])
+    assert "%%" not in script
+
+
 def test_ttl_sets_expiry():
     before = _now_ms()
     out = generate_instrumentation({"obfuscation_level": 1, "ttl_ms": 1000})
@@ -247,6 +276,21 @@ const out = cases.map((c) => {
 process.stdout.write(JSON.stringify(out));
 """
 
+_NODE_CE_HARNESS = r"""
+const fs = require("fs");
+const decl = JSON.parse(fs.readFileSync(0, "utf8"));
+const run = (evalImpl, fnImpl) =>
+  new Function("eval", "Function", "EvalError", decl.code + "return " + decl.name + ";")(
+    evalImpl, fnImpl, EvalError);
+const thrower = (e) => function () { throw e; };
+process.stdout.write(JSON.stringify({
+  normal: run(eval, Function),
+  evalBlocked: run(thrower(new EvalError("blocked")), Function),
+  functionBlocked: run(eval, thrower(new EvalError("blocked"))),
+  otherError: run(thrower(new TypeError("x")), Function),
+}));
+"""
+
 _NODE_PARSE_HARNESS = r"""
 const fs = require("fs");
 const scripts = JSON.parse(fs.readFileSync(0, "utf8"));
@@ -317,3 +361,26 @@ def test_full_script_parses_in_node(level):
     )
     assert proc.returncode == 0, proc.stderr
     assert json.loads(proc.stdout) == [None] * len(scripts)
+
+
+@pytest.mark.node
+def test_csp_probe_is_true_only_for_eval_error():
+    node = _require_node()
+    script = _inflate(generate_instrumentation({"obfuscation_level": 1})["blob"])
+    name, decl = _ce_name_and_decl(script)
+    proc = subprocess.run(
+        [node, "-e", _NODE_CE_HARNESS],
+        input=json.dumps({"name": name, "code": decl}),
+        check=False,
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        timeout=120,
+    )
+    assert proc.returncode == 0, proc.stderr
+    assert json.loads(proc.stdout) == {
+        "normal": False,
+        "evalBlocked": True,
+        "functionBlocked": True,
+        "otherError": False,
+    }

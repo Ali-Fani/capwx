@@ -113,7 +113,11 @@ def test_site_overrides_map_to_config_fields():
             sites={
                 "login": {
                     "HASHWX_DIFFICULTY": 5000,
-                    "INSTRUMENTATION": {"BLOCK_AUTOMATED_BROWSERS": True, "OBFUSCATION_LEVEL": 2},
+                    "INSTRUMENTATION": {
+                        "BLOCK_AUTOMATED_BROWSERS": True,
+                        "OBFUSCATION_LEVEL": 2,
+                        "ALLOW_CSP_EVAL_BLOCKED": True,
+                    },
                 }
             }
         )
@@ -123,6 +127,7 @@ def test_site_overrides_map_to_config_fields():
         assert login.config.hashwx_difficulty == 5000
         assert login.config.instrumentation.block_automated_browsers is True
         assert login.config.instrumentation.obfuscation_level == 2
+        assert login.config.instrumentation.allow_csp_eval_blocked is True
         assert login.config.secret == SECRET
         assert conf.get_site("default") is not None  # always present
         assert conf.get_site("nope") is None

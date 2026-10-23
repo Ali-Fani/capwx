@@ -99,7 +99,14 @@ def test_mint_returns_one_pair_with_public_blob_only() -> None:
 def test_mint_instr_meta_has_camel_case_keys_and_shapes() -> None:
     _, expected = _mint_one()
     meta = expected["instrMeta"]
-    assert set(meta) == {"id", "expectedVals", "vars", "blockAutomatedBrowsers", "expires"}
+    assert set(meta) == {
+        "id",
+        "expectedVals",
+        "vars",
+        "blockAutomatedBrowsers",
+        "allowCspEvalBlocked",
+        "expires",
+    }
     assert re.fullmatch(r"[0-9a-f]{32}", meta["id"])
     assert len(meta["vars"]) == 4
     assert all(isinstance(v, str) and re.fullmatch(r"[a-z][a-z0-9]{11}", v) for v in meta["vars"])
@@ -107,6 +114,7 @@ def test_mint_instr_meta_has_camel_case_keys_and_shapes() -> None:
     assert len(meta["expectedVals"]) == 4
     assert all(type(v) is int and 100_000 <= v <= 999_999 for v in meta["expectedVals"])
     assert meta["blockAutomatedBrowsers"] is False
+    assert meta["allowCspEvalBlocked"] is False
 
 
 def test_mint_block_flag_follows_config() -> None:
@@ -218,6 +226,64 @@ def test_headless_probe_with_block_on_is_automated_browser_with_blocked_by() -> 
     assert result.valid is False
     assert result.reason == Reason.INSTR_AUTOMATED_BROWSER
     assert result.blocked_by == ["webdriver_true"]
+
+
+def test_mint_allow_csp_eval_blocked_follows_config() -> None:
+    config = CapConfig(
+        secret=SECRET,
+        protocols=("instrumentation",),
+        instrumentation=InstrumentationOptions(allow_csp_eval_blocked=True),
+    )
+    [(_, expected)] = mint(config)
+    assert expected["instrMeta"]["allowCspEvalBlocked"] is True
+
+
+def test_csp_eval_blocked_is_rejected_by_default() -> None:
+    _, expected = _mint_one()
+    result = verify(expected, {"instr": _answer(expected, probe=_probe(), ce=True)}, now_ms=0)
+    assert result.valid is False
+    assert result.reason == Reason.INSTR_CSP_EVAL_BLOCKED
+    assert result.reason == "instr_csp_eval_blocked"
+
+
+def test_csp_eval_blocked_is_rejected_when_meta_lacks_the_key() -> None:
+    # Meta minted by capjs-core has no allowCspEvalBlocked: it stays strict.
+    _, expected = _mint_one()
+    del expected["instrMeta"]["allowCspEvalBlocked"]
+    result = verify(expected, {"instr": _answer(expected, probe=_probe(), ce=True)}, now_ms=0)
+    assert result.reason == Reason.INSTR_CSP_EVAL_BLOCKED
+
+
+def test_csp_eval_blocked_is_accepted_with_a_risk_flag_when_allowed() -> None:
+    _, expected = _mint_one()
+    expected = _with_meta(expected, allowCspEvalBlocked=True)
+    result = verify(expected, {"instr": _answer(expected, probe=_probe(), ce=True)}, now_ms=0)
+    assert result.valid is True
+    assert "csp_eval_blocked" in result.risk_flags
+
+
+def test_csp_eval_blocked_without_probe_is_accepted_when_allowed() -> None:
+    _, expected = _mint_one()
+    expected = _with_meta(expected, allowCspEvalBlocked=True)
+    result = verify(expected, {"instr": _answer(expected, ce=True)}, now_ms=0)
+    assert result.valid is True
+    assert result.risk_flags == ["csp_eval_blocked"]
+
+
+@pytest.mark.parametrize("ce", [False, None, "true", 1, [True], {"a": 1}])
+def test_non_true_ce_is_treated_as_absent(ce: Any) -> None:
+    _, expected = _mint_one()
+    result = verify(expected, {"instr": _answer(expected, probe=_probe(), ce=ce)}, now_ms=0)
+    assert result.valid is True
+    assert "csp_eval_blocked" not in result.risk_flags
+
+
+def test_wrong_state_with_ce_is_still_failed_challenge() -> None:
+    _, expected = _mint_one()
+    payload = _answer(expected, probe=_probe(), ce=True)
+    payload["state"] = {v: 1 for v in expected["instrMeta"]["vars"]}
+    result = verify(expected, {"instr": payload}, now_ms=0)
+    assert result.reason == Reason.FAILED_CHALLENGE
 
 
 def test_probe_missing_with_block_on_is_probe_missing() -> None:

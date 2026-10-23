@@ -3,6 +3,22 @@
 All notable changes to this project are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased]
+
+### Fixed
+
+- Instrumentation no longer always times out under a CSP without `'unsafe-eval'` (#1). The probe now
+  detects blocked `eval`, skips the three eval-based checks and reports `ce: true`; the server fails
+  fast with `instr_csp_eval_blocked` instead of the widget waiting 20 s for `instr_timeout`.
+
+### Added
+
+- `InstrumentationOptions.allow_csp_eval_blocked` (Django: `INSTRUMENTATION.ALLOW_CSP_EVAL_BLOCKED`),
+  default `False`. When set, a probe that ran without eval is accepted with the risk flag
+  `csp_eval_blocked`.
+- `Reason.INSTR_CSP_EVAL_BLOCKED` (`instr_csp_eval_blocked`).
+- README section "Content Security Policy".
+
 ## [0.2.1] - 2026-10-21
 
 ### Fixed

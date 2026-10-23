@@ -64,6 +64,14 @@ These are the places where capwx does not match upstream output. Each one is del
   length on verify. capwx refuses a HashWX `d` above 1 000 000 000 and a sha256 target that is not 1 to 16
   hex digits. Both bounds match the mint-time limits in `CapConfig`, and valid challenges from upstream
   are unaffected.
+- **Instrumentation under a CSP without `'unsafe-eval'`.** Upstream's three eval-based environment
+  checks (`new Function`, `(0, eval)('this')` and the eval-secret check) throw `EvalError` there, so
+  the probe never posts and the widget times out after 20 s. capwx's script first tests once whether
+  eval is blocked (`EvalError` from `(0, eval)('1')` or `new Function`), skips those three checks when
+  it is, and adds `ce: true` to the result (`ce: false` otherwise). The server rejects `ce: true` with
+  `instr_csp_eval_blocked` unless `instrMeta.allowCspEvalBlocked` is set (`allow_csp_eval_blocked`);
+  then it accepts with the risk flag `csp_eval_blocked`. The meta key is capwx-only: meta minted by
+  `capjs-core` lacks it and stays strict. All other checks are unchanged.
 - **Replacement wasm is not hash-checked.** `hashwx_wasm_path` loads the file as given. The vendored
   wasm is checked against `SHA256` at load, and only when no path is set.
 - **Django stores.** `DjangoCacheStore` consumes a token with an atomic `cache.add` of a marker
