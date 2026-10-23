@@ -10,12 +10,14 @@ the redeem response, not with a bare timeout.
 
 from __future__ import annotations
 
+import time
 from typing import Any
 from urllib.parse import urlsplit
 
 import pytest
 from playwright.sync_api import TimeoutError as PlaywrightTimeoutError
 
+from tests.django_project.views import E2E_CSP_NONCE
 from tests.e2e.support import BASE_HOST, Recorder
 
 pytestmark = pytest.mark.e2e
@@ -168,3 +170,49 @@ def test_no_request_leaves_localhost(recorder: Recorder, e2e_base_url: str) -> N
     assert recorder.requests, "no requests were recorded"
     _assert_only_local(recorder)
     assert not any("cdn." in r.url for r in recorder.requests)
+
+
+# --- 5. strict CSP without 'unsafe-eval' (issue #1) -------------------------------------------
+
+_STRICT_CSP = (
+    "default-src 'self'; "
+    f"script-src 'self' 'nonce-{E2E_CSP_NONCE}' 'wasm-unsafe-eval'; "
+    "worker-src 'self' blob:; "
+    "style-src 'self' 'unsafe-inline'; "
+    "img-src 'self' data: blob:"
+)
+
+
+def _serve_under_strict_csp(rec: Recorder, site: str) -> None:
+    """Add a CSP without 'unsafe-eval' to the e2e page; the srcdoc probe iframe inherits it."""
+
+    def handle(route: Any) -> None:
+        if route.request.method != "GET":
+            route.continue_()
+            return
+        response = route.fetch()
+        headers = {**response.headers, "content-security-policy": _STRICT_CSP}
+        route.fulfill(response=response, headers=headers)
+
+    rec.page.route(f"**/e2e/{site}/", handle)
+
+
+def test_strict_csp_fails_fast_with_csp_eval_blocked(recorder: Recorder, e2e_base_url: str) -> None:
+    _serve_under_strict_csp(recorder, "e2e-csp")
+    started = time.monotonic()
+    seen = _solve(recorder, e2e_base_url, "e2e-csp")
+    elapsed = time.monotonic() - started
+
+    assert not seen["token"]
+    assert seen["redeem_status"] == 403, seen
+    assert seen["redeem_body"] == {"success": False, "error": "instr_csp_eval_blocked"}, seen
+    # Before the fix the widget waited the full 20 s probe timeout and got instr_timeout.
+    assert elapsed < 20, f"took {elapsed:.1f}s: the probe did not post"
+
+
+def test_strict_csp_is_accepted_when_allowed(recorder: Recorder, e2e_base_url: str) -> None:
+    _serve_under_strict_csp(recorder, "e2e-csp-allow")
+    seen = _assert_accepted(recorder, e2e_base_url, "e2e-csp-allow")
+
+    instr = seen["redeem_request"]["solutions"][-1]["instr"]
+    assert instr["ce"] is True

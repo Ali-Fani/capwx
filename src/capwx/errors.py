@@ -26,6 +26,7 @@ class Reason(str, enum.Enum):
     INSTR_FAILED = "instr_failed"
     INSTR_AUTOMATED_BROWSER = "instr_automated_browser"
     INSTR_PROBE_MISSING = "instr_probe_missing"
+    INSTR_CSP_EVAL_BLOCKED = "instr_csp_eval_blocked"
     ID_MISMATCH = "id_mismatch"
     INVALID_STATE = "invalid_state"
     FAILED_CHALLENGE = "failed_challenge"

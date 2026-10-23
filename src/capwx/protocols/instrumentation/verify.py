@@ -13,6 +13,12 @@ Upstream is the spec. Where the upstream code and the plan differ, upstream is f
 - Non-object meta / payload give upstream's reasons ``missing_meta`` / ``missing_output``.
   These are not members of ``Reason`` and are returned as plain strings, like ``invalid_meta``.
 
+capwx deviates from upstream in one place: the probe reports ``ce: true`` when the page CSP has no
+``'unsafe-eval'`` (it then skips its eval-based environment checks instead of timing out). Such a
+result fails with ``instr_csp_eval_blocked`` unless ``instrMeta.allowCspEvalBlocked`` is truthy, in
+which case it is accepted with the risk flag ``csp_eval_blocked``. Meta minted by capjs-core lacks the
+key, so it stays strict. Only a JSON ``true`` counts as ``ce``.
+
 Nothing in this module raises on client input.
 """
 
@@ -110,6 +116,12 @@ def verify_instrumentation_result(meta: Any, payload: Any) -> VerifyTuple:
     if not matched:
         return False, Reason.FAILED_CHALLENGE, [], []
 
+    csp_flags: list[str] = []
+    if _get(payload, "ce") is True:
+        if not _truthy(_get(meta, "allowCspEvalBlocked")):
+            return False, Reason.INSTR_CSP_EVAL_BLOCKED, [], []
+        csp_flags = ["csp_eval_blocked"]
+
     block = _truthy(_get(meta, "blockAutomatedBrowsers"))
     probe = _get(payload, "p")
     if _is_object(probe):
@@ -126,11 +138,11 @@ def verify_instrumentation_result(meta: Any, payload: Any) -> VerifyTuple:
         blocked_by = list(d["blocked_by"])
         if block and not d["pass"]:
             return False, Reason.INSTR_AUTOMATED_BROWSER, [], blocked_by
-        return True, None, list(d["risk_flags"]), blocked_by
+        return True, None, [*d["risk_flags"], *csp_flags], blocked_by
 
     if block:
         return False, Reason.INSTR_PROBE_MISSING, [], []
-    return True, None, [], []
+    return True, None, csp_flags, []
 
 
 # --- validateChallengeV2 instrumentation branch ---------------------------------

@@ -18,7 +18,7 @@ Settings shape (see plan section 11.1)::
 
 Every ``CapConfig`` field is accepted in UPPER_CASE, at the top level (global default) or inside
 a site. ``INSTRUMENTATION`` takes ``ENABLED``, ``BLOCK_AUTOMATED_BROWSERS`` and
-``OBFUSCATION_LEVEL``. ``SECRET`` is global only. The site name ``"default"`` always exists, even
+``OBFUSCATION_LEVEL`` and ``ALLOW_CSP_EVAL_BLOCKED``. ``SECRET`` is global only. The site name ``"default"`` always exists, even
 when it is not listed in ``SITES``.
 
 The parsed result is cached. The cache is dropped when ``CAPWX`` changes (``override_settings``) and
@@ -57,6 +57,7 @@ _INSTRUMENTATION_FIELDS = {
     "ENABLED": "enabled",
     "BLOCK_AUTOMATED_BROWSERS": "block_automated_browsers",
     "OBFUSCATION_LEVEL": "obfuscation_level",
+    "ALLOW_CSP_EVAL_BLOCKED": "allow_csp_eval_blocked",
 }
 _GLOBAL_ONLY = {
     "SITES",

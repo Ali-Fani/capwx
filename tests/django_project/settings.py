@@ -86,6 +86,12 @@ CAPWX = {
             "HASHWX_DIFFICULTY": 20_000,
             "INSTRUMENTATION": {"BLOCK_AUTOMATED_BROWSERS": True},
         },
+        # Served under a strict CSP without 'unsafe-eval' by the CSP tests; the second site opts in.
+        "e2e-csp": {"HASHWX_DIFFICULTY": 20_000},
+        "e2e-csp-allow": {
+            "HASHWX_DIFFICULTY": 20_000,
+            "INSTRUMENTATION": {"ALLOW_CSP_EVAL_BLOCKED": True},
+        },
         # No hashwx: sha256-pow challenges only (few, easy) plus instrumentation.
         "e2e-nohashwx": {
             "PROTOCOLS": ["sha256-pow", "instrumentation"],

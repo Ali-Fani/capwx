@@ -215,16 +215,22 @@ _ENV_CHECKS = [
     r"if (typeof HTMLElement !== 'function' || typeof Window !== 'function' || typeof Document !== 'function' || typeof Navigator !== 'function' || typeof Node !== 'function') return null; if (!(navigator instanceof Navigator) || !(document instanceof Document) || !(window instanceof Window) || !(document.body instanceof HTMLElement)) return null; if (globalThis !== window || window.self !== window || document.defaultView !== window) return null;",
     r"try { const %%NK%%ots = Object.prototype.toString; if (%%HF%%(%%NK%%ots.call(navigator)) !== %%H_OBJ_NAV%% || %%HF%%(%%NK%%ots.call(window)) !== %%H_OBJ_WIN%% || %%HF%%(%%NK%%ots.call(document)) !== %%H_OBJ_DOC%%) return null; } catch { return null }",
     r"try { if (typeof EventTarget !== 'function' || !(document.body instanceof EventTarget) || !(window instanceof EventTarget)) return null; const %%NK%%probe = document.createElement('div'); let %%NK%%fired = 0; const %%NK%%ev = '_c' + (Date.now() & 0xffff).toString(36); const %%NK%%h = (e) => { if (e && e.detail === 0xc0de) %%NK%%fired++; }; %%NK%%probe.addEventListener(%%NK%%ev, %%NK%%h); %%NK%%probe.dispatchEvent(new CustomEvent(%%NK%%ev, { detail: 0xc0de })); %%NK%%probe.dispatchEvent(new CustomEvent(%%NK%%ev, { detail: 0xc0de })); %%NK%%probe.removeEventListener(%%NK%%ev, %%NK%%h); %%NK%%probe.dispatchEvent(new CustomEvent(%%NK%%ev, { detail: 0xc0de })); if (%%NK%%fired !== 2) return null; } catch { return null }",
-    r"""try { const %%NK%%gf = new Function('return this'); const %%NK%%tg = %%NK%%gf(); if (%%NK%%tg !== globalThis) return null; const %%NK%%leakHashes = %%LEAK1%%; for (const %%NK%%k of Object.getOwnPropertyNames(%%NK%%tg)) { if (%%HSET%%(%%NK%%leakHashes, %%HF%%(%%NK%%k))) return null; } const %%NK%%fnArgs = new Function('a','b','c','return a+b+c'); if (%%NK%%fnArgs.length !== 3) return null; if (%%NK%%fnArgs(10,20,30) !== 60) return null; const %%NK%%src = Function.prototype.toString.call(%%NK%%fnArgs); if (%%NK%%src.indexOf('return a+b+c') === -1) return null; if (%%NK%%src.indexOf('apply') !== -1 || %%NK%%src.indexOf('callArgs') !== -1 || %%NK%%src.indexOf('Reflect.') !== -1) return null; let %%NK%%thrown = null; try { new Function('throw new Error("x")')(); } catch (%%NK%%e) { %%NK%%thrown = %%NK%%e; } if (!%%NK%%thrown || !%%NK%%thrown.stack) return null; const %%NK%%st2 = %%NK%%thrown.stack; if (%%NK%%st2.indexOf('node:internal') !== -1 || %%NK%%st2.indexOf('moduleEvaluation') !== -1 || %%NK%%st2.indexOf('file:///') !== -1 || %%NK%%st2.indexOf('[eval]') !== -1 || /\(native:/.test(%%NK%%st2)) return null; } catch { return null }""",
-    r"try { const %%NK%%ie = (0, eval); const %%NK%%eg = %%NK%%ie('this'); if (%%NK%%eg !== globalThis) return null; const %%NK%%leak2 = %%LEAK2%%; for (const %%NK%%k of Object.getOwnPropertyNames(%%NK%%eg)) { if (%%HSET%%(%%NK%%leak2, %%HF%%(%%NK%%k))) return null; } } catch { return null }",
-    r"try { var %%EL%% = %%ES%%; var %%EA%% = '%%EL2%%'; var %%EB%% = '%%ELREST%%'; var %%EC%% = %%EA%% + %%EB%%; var %%EL%%r1 = (0, eval)('typeof ' + %%EC%%); if (%%EL%%r1 !== 'undefined') return null; var %%EL%%r2 = eval(%%EC%%); if (%%EL%%r2 !== %%ES%%) return null; var %%EL%%r3 = eval(%%EA%% + %%EB%% + '+1'); if (%%EL%%r3 !== %%ES1%%) return null; var %%EL%%arr = ['(', '(', ')', '=', '>', 't', 'h', 'i', 's', ')', '(', ')']; var %%EL%%arrow = (0, eval)(%%EL%%arr.join('')); if (%%EL%%arrow !== globalThis) return null; var %%EL%%r4 = eval('(function(){return ' + %%EC%% + '*2;})()'); if (%%EL%%r4 !== %%ES2%%) return null; } catch { return null }",
+    r"""if (!%%CE%%) { try { const %%NK%%gf = new Function('return this'); const %%NK%%tg = %%NK%%gf(); if (%%NK%%tg !== globalThis) return null; const %%NK%%leakHashes = %%LEAK1%%; for (const %%NK%%k of Object.getOwnPropertyNames(%%NK%%tg)) { if (%%HSET%%(%%NK%%leakHashes, %%HF%%(%%NK%%k))) return null; } const %%NK%%fnArgs = new Function('a','b','c','return a+b+c'); if (%%NK%%fnArgs.length !== 3) return null; if (%%NK%%fnArgs(10,20,30) !== 60) return null; const %%NK%%src = Function.prototype.toString.call(%%NK%%fnArgs); if (%%NK%%src.indexOf('return a+b+c') === -1) return null; if (%%NK%%src.indexOf('apply') !== -1 || %%NK%%src.indexOf('callArgs') !== -1 || %%NK%%src.indexOf('Reflect.') !== -1) return null; let %%NK%%thrown = null; try { new Function('throw new Error("x")')(); } catch (%%NK%%e) { %%NK%%thrown = %%NK%%e; } if (!%%NK%%thrown || !%%NK%%thrown.stack) return null; const %%NK%%st2 = %%NK%%thrown.stack; if (%%NK%%st2.indexOf('node:internal') !== -1 || %%NK%%st2.indexOf('moduleEvaluation') !== -1 || %%NK%%st2.indexOf('file:///') !== -1 || %%NK%%st2.indexOf('[eval]') !== -1 || /\(native:/.test(%%NK%%st2)) return null; } catch { return null } }""",
+    r"if (!%%CE%%) { try { const %%NK%%ie = (0, eval); const %%NK%%eg = %%NK%%ie('this'); if (%%NK%%eg !== globalThis) return null; const %%NK%%leak2 = %%LEAK2%%; for (const %%NK%%k of Object.getOwnPropertyNames(%%NK%%eg)) { if (%%HSET%%(%%NK%%leak2, %%HF%%(%%NK%%k))) return null; } } catch { return null } }",
+    r"if (!%%CE%%) { try { var %%EL%% = %%ES%%; var %%EA%% = '%%EL2%%'; var %%EB%% = '%%ELREST%%'; var %%EC%% = %%EA%% + %%EB%%; var %%EL%%r1 = (0, eval)('typeof ' + %%EC%%); if (%%EL%%r1 !== 'undefined') return null; var %%EL%%r2 = eval(%%EC%%); if (%%EL%%r2 !== %%ES%%) return null; var %%EL%%r3 = eval(%%EA%% + %%EB%% + '+1'); if (%%EL%%r3 !== %%ES1%%) return null; var %%EL%%arr = ['(', '(', ')', '=', '>', 't', 'h', 'i', 's', ')', '(', ')']; var %%EL%%arrow = (0, eval)(%%EL%%arr.join('')); if (%%EL%%arrow !== globalThis) return null; var %%EL%%r4 = eval('(function(){return ' + %%EC%% + '*2;})()'); if (%%EL%%r4 !== %%ES2%%) return null; } catch { return null } }",
 ]
 
+# capwx-only (not upstream): detects a CSP without 'unsafe-eval'. Under one, both eval and
+# `new Function` throw EvalError (the srcdoc iframe inherits the page CSP), which would make the three
+# eval-based env checks bail out and the probe never post. Any other throw leaves it false, so those
+# checks then run as before. The result is reported as `ce` so the server can apply its policy.
+_CE_DETECT = r"var %%CE%%=(function(){try{(0,eval)('1');new Function('return 1')();return false}catch(e){return e instanceof EvalError}})();"
+
 _CLIENT_TEMPLATE = (
-    r"(function(){window.onload=async function(){try {%%HELPERS%%const %%DV%%=await (async function(){%%ENVS%%%%BLOCK%%"
+    r"(function(){window.onload=async function(){try {%%HELPERS%%%%CEDECL%%const %%DV%%=await (async function(){%%ENVS%%%%BLOCK%%"
     "\n      var %%V0%%=%%I0%%;var %%V1%%=%%I1%%;var %%V2%%=%%I2%%;var %%V3%%=%%I3%%;%%EQS%%"
     '\n      var %%OUT%%={};%%OUT%%["%%V0%%"]=%%V0%%;%%OUT%%["%%V1%%"]=%%V1%%;%%OUT%%["%%V2%%"]=%%V2%%;%%OUT%%["%%V3%%"]=%%V3%%;return %%OUT%%;})();'
-    r"if (!%%DV%% || typeof %%DV%% !== 'object') return;%%PROBE%%parent.postMessage({type: 'cap:instr',nonce:%%ID%%,result:{i:%%ID%%,state:%%DV%%,p:%%P%%,ts:Date.now()}},'*');} catch {}};})();"
+    r"if (!%%DV%% || typeof %%DV%% !== 'object') return;%%PROBE%%parent.postMessage({type: 'cap:instr',nonce:%%ID%%,result:{i:%%ID%%,state:%%DV%%,p:%%P%%,ts:Date.now(),ce:%%CE%%}},'*');} catch {}};})();"
 )
 
 
@@ -493,12 +499,15 @@ def build_client_script(
     shuffle(env)
 
     probe = build_probe(p_key)
+    ce_key = _r_var()  # drawn last, so the draws above keep upstream's order
 
     return _fill(
         _CLIENT_TEMPLATE,
         HELPERS=helpers,
+        CEDECL=_CE_DETECT,
         DV=dv_key,
         ENVS="".join(env),
+        CE=ce_key,  # after ENVS / CEDECL, which carry %%CE%% tokens
         BLOCK=block_checks,
         V0=vars_[0],
         V1=vars_[1],

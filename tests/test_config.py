@@ -30,6 +30,7 @@ def test_instrumentation_defaults():
     assert opts.enabled is True
     assert opts.block_automated_browsers is False
     assert opts.obfuscation_level == 3
+    assert opts.allow_csp_eval_blocked is False
 
 
 def test_config_is_frozen():
@@ -152,6 +153,12 @@ def test_obfuscation_level_bounds_ok(level):
 def test_obfuscation_level_out_of_range_rejected(level):
     with pytest.raises(CapwxError, match=r"^instrumentation.obfuscation_level must be"):
         InstrumentationOptions(obfuscation_level=level)
+
+
+def test_allow_csp_eval_blocked_must_be_bool():
+    assert InstrumentationOptions(allow_csp_eval_blocked=True).allow_csp_eval_blocked is True
+    with pytest.raises(CapwxError, match=r"^instrumentation.allow_csp_eval_blocked must be a bool"):
+        InstrumentationOptions(allow_csp_eval_blocked=1)  # type: ignore[arg-type]
 
 
 def test_obfuscation_level_bool_rejected():

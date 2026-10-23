@@ -63,11 +63,15 @@ class InstrumentationOptions:
     enabled: bool = True
     block_automated_browsers: bool = False
     obfuscation_level: int = 3  # 1..10; >7 clamped to 7 with a warning
+    # A page CSP without 'unsafe-eval' makes the probe skip its eval-based checks and report it.
+    # Strict by default: the server then fails the challenge with ``instr_csp_eval_blocked``.
+    allow_csp_eval_blocked: bool = False
 
     def __post_init__(self) -> None:
         _check_bool("instrumentation.enabled", self.enabled)
         _check_bool("instrumentation.block_automated_browsers", self.block_automated_browsers)
         _check_int("instrumentation.obfuscation_level", self.obfuscation_level, 1, 10)
+        _check_bool("instrumentation.allow_csp_eval_blocked", self.allow_csp_eval_blocked)
 
 
 @dataclass(frozen=True)
