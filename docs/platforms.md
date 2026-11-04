@@ -92,5 +92,5 @@ whether the native dependency is installed at all.
 
 Whether a per-platform native HashWX library would beat the wasm, and what it would cost, is measured
 in [native-code-evaluation.md](native-code-evaluation.md). The short answer: it is about 9x faster
-per verification and would drop the 22.6 MB `wasmtime` dependency, but it needs one binary per platform
-and keeps the LGPL-3.0 source-offer obligations that `hashwx.wasm` already has.
+per verification. The `wasmtime` fallback stays installed, so the 22.6 MB package only goes away if
+wasmtime becomes optional. It needs one binary per platform and keeps the LGPL-3.0 source-offer obligations that `hashwx.wasm` already has.

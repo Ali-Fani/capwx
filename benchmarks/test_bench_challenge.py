@@ -1,7 +1,7 @@
 """Benchmarks for the public challenge lifecycle: mint, redeem, validate.
 
 Run with ``uv run pytest benchmarks -q``. ``pytest-benchmark`` prints mean/median/stddev and the
-number of rounds; add ``--benchmark-columns=mean,median,stddev,ops`` for request rates.
+number of rounds; add ``--benchmark-columns=mean,median,stddev,ops`` for calls per second.
 """
 
 from __future__ import annotations
@@ -10,6 +10,7 @@ from typing import Any
 
 from capwx.challenge import create_challenge, redeem
 from capwx.config import CapConfig
+from capwx.errors import Reason
 from capwx.tokens import issue_token, siteverify, validate_token
 
 
@@ -79,14 +80,21 @@ def test_redeem_with_nonce_and_token_store(
 ) -> None:
     """The full production shape: single-use nonce claim plus a stored verification token."""
     bodies = iter(store_bodies)
-    result = benchmark.pedantic(
-        lambda: redeem(
-            cfg_default, next(bodies), nonce_store=memory_store, token_store=memory_store
-        ),
-        rounds=5,
-        iterations=5,
-    )
+    used: list[tuple[dict[str, Any], Any]] = []
+
+    def run() -> Any:
+        body = next(bodies)
+        result = redeem(cfg_default, body, nonce_store=memory_store, token_store=memory_store)
+        used.append((body, result))
+        return result
+
+    result = benchmark.pedantic(run, rounds=5, iterations=5)
     assert result.success
+    # The timed path really did the stored work: the nonce is claimed and the token is stored.
+    first_body, first_result = used[0]
+    replay = redeem(cfg_default, first_body, nonce_store=memory_store, token_store=memory_store)
+    assert replay.reason == Reason.ALREADY_REDEEMED
+    assert validate_token(cfg_default, first_result.token, token_store=memory_store, consume=False)
 
 
 def test_issue_token_stateless(benchmark: Any, cfg_default: CapConfig) -> None:

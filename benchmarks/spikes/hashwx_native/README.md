@@ -19,8 +19,8 @@ HASHWX_SRC="$PWD/third_party/hashwx" cargo build --release \
   --manifest-path benchmarks/spikes/hashwx_native/Cargo.toml
 ```
 
-The output is `benchmarks/spikes/hashwx_native/target/release/capwx_hashwx.dll` (`.so` on Linux,
-`.dylib` on macOS).
+The output is in `benchmarks/spikes/hashwx_native/target/release/`: `capwx_hashwx.dll` on Windows,
+`libcapwx_hashwx.so` on Linux, `libcapwx_hashwx.dylib` on macOS.
 
 ## Compare against the wasm
 

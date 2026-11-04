@@ -9,7 +9,7 @@ uv sync --group dev --group bench --extra django
 uv run pytest benchmarks -q
 ```
 
-Useful flags: `--benchmark-columns=mean,median,stddev,ops` for request rates,
+Useful flags: `--benchmark-columns=mean,median,stddev,ops` for calls per second (direct Python calls, no HTTP; see `throughput.py` for routes),
 `--benchmark-max-time=2` to budget time per benchmark, `-k <name>` to run one case.
 
 The bench configs use a much lower proof-of-work difficulty than production

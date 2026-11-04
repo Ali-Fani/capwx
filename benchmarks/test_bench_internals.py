@@ -14,7 +14,17 @@ import pytest
 from capwx.protocols import hashwx
 from capwx.protocols.instrumentation import obfuscate
 from capwx.protocols.instrumentation.generator import (
-    PROBE_FONT_STACKS,
+    ATTR_SUBSTRING_MARKERS,
+    DOC_PROP_MARKERS,
+    NAV_OWN_PROP_MARKERS,
+    PRODUCTSUB_GECKO,
+    SEQUENTUM_MARKER,
+    STACK_SUBSTRING_MARKERS,
+    UA_TOKEN_MARKERS,
+    WEBGL_RENDERER_MARKER,
+    WEBGL_VENDOR_MARKER,
+    WINDOW_PREFIX_MARKERS,
+    WINDOW_PROP_MARKERS,
     build_client_script,
     dom_sum_mock,
     generate_instrumentation,
@@ -109,19 +119,27 @@ def test_hash_with_all_markers(benchmark: Any) -> None:
     """Hash every block-check marker the way ``build_block_checks`` does."""
     h = hash_with(1_234_567)
     markers = [
+        *WINDOW_PROP_MARKERS,
+        *DOC_PROP_MARKERS,
+        *NAV_OWN_PROP_MARKERS,
+        *ATTR_SUBSTRING_MARKERS,
+        *STACK_SUBSTRING_MARKERS,
+        *WINDOW_PREFIX_MARKERS,
+        *UA_TOKEN_MARKERS,
+        WEBGL_VENDOR_MARKER,
+        WEBGL_RENDERER_MARKER,
+        PRODUCTSUB_GECKO,
+        SEQUENTUM_MARKER,
         "webdriver",
-        "userAgent",
         "exposeBindingHandle",
         "renderer",
         "[native code]",
-        "Sequentum",
         "chrome",
         "safari",
         "opera",
         "Array",
         "Promise",
         "Symbol",
-        *PROBE_FONT_STACKS,
     ]
     benchmark(lambda: [h(m) for m in markers])
 

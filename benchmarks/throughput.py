@@ -11,7 +11,6 @@ Sequential requests, one worker: this is a lower bound on a multi-worker deploym
 from __future__ import annotations
 
 import asyncio
-import statistics
 import sys
 import time
 from pathlib import Path
@@ -48,23 +47,32 @@ async def redeem_one(request: Request) -> dict[str, Any]:
     return redeem(CONFIG, body, nonce_store=STORE, token_store=STORE).to_widget_json()
 
 
-async def measure(path: str, payload: dict[str, Any] | None, count: int) -> float:
+WARMUP = 50
+
+
+async def measure(path: str, payloads: list[dict[str, Any] | None]) -> float:
+    """Microseconds per request. One payload per request: a solved body redeems only once."""
     transport = httpx.ASGITransport(app=app)
     async with httpx.AsyncClient(transport=transport, base_url="http://bench") as client:
-        for _ in range(50):  # warm-up: engine, routes, JSON codecs
+        for payload in payloads[:WARMUP]:  # warm-up: engine, routes, JSON codecs
             await client.post(path, json=payload)
+        timed = payloads[WARMUP:]
         started = time.perf_counter()
-        for _ in range(count):
+        for payload in timed:
             await client.post(path, json=payload)
-        return (time.perf_counter() - started) / count * 1e6
+        return (time.perf_counter() - started) / len(timed) * 1e6
 
 
 async def main() -> None:
     count = 500
-    bodies = [body_for(SECRET, create_challenge(CONFIG)) for _ in range(count)]
-    noop_us = await measure("/noop", None, count)
-    challenge_us = await measure("/challenge", None, count)
-    redeem_us = statistics.median([await measure("/redeem", body, 20) for body in bodies[:20]])
+    # Solved outside the timed region; each is redeemed exactly once, so /redeem succeeds.
+    bodies: list[dict[str, Any] | None] = [
+        body_for(SECRET, create_challenge(CONFIG)) for _ in range(WARMUP + count)
+    ]
+    empty: list[dict[str, Any] | None] = [None] * (WARMUP + count)
+    noop_us = await measure("/noop", empty)
+    challenge_us = await measure("/challenge", empty)
+    redeem_us = await measure("/redeem", bodies)
     print(f"Python {sys.version.split()[0]}, FastAPI + httpx ASGI transport, sequential requests")
     print()
     print("| Route | us/request | requests/s |")

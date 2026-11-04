@@ -1,12 +1,12 @@
 """Compare a native HashWX build with the vendored wasm, and time both.
 
-Build the library first (from this directory):
+Build the library first (from the repository root):
 
     HASHWX_SRC=<checkout>/third_party/hashwx cargo build --release --manifest-path benchmarks/spikes/hashwx_native/Cargo.toml
 
 Then run this script from the repository root, pointing at the built library:
 
-    uv run python benchmarks/spikes/hashwx_native/compare.py --lib <path to capwx_hashwx.dll|.so>
+    uv run python benchmarks/spikes/hashwx_native/compare.py --lib <path to capwx_hashwx.dll | libcapwx_hashwx.so | libcapwx_hashwx.dylib>
 
 The script checks equality against the wasm on random ``(seed, nonce)`` pairs, then reports
 microseconds per call for: wasmtime (make + exec), native interpreted, native compiled, and
@@ -81,7 +81,8 @@ def main() -> None:
         expected = engine.hash(seed, nonce)
         for ctx in (interpreted, compiled):
             lib.capwx_hashwx_make(ctx, ctypes.c_char_p(seed))
-            assert lib.capwx_hashwx_exec(ctx, nonce) == expected, (i, ctx)
+            if lib.capwx_hashwx_exec(ctx, nonce) != expected:  # not assert: survives python -O
+                raise SystemExit(f"pair {i}: native build differs from the wasm")
     print(f"{PAIRS} random (seed, nonce) pairs: native interpreted and compiled match the wasm")
 
     seed = hashlib.sha256(b"bench").digest()

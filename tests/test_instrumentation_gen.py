@@ -9,6 +9,7 @@ from __future__ import annotations
 import base64
 import json
 import logging
+import random
 import re
 import shutil
 import subprocess
@@ -17,6 +18,7 @@ from pathlib import Path
 
 import pytest
 
+from capwx._jsint import js_shl, js_xor, to_uint32, utf16_units
 from capwx.protocols.instrumentation import obfuscate
 from capwx.protocols.instrumentation.generator import (
     PROBE_FONT_STACKS,
@@ -48,6 +50,31 @@ def reset_clamp_warning(monkeypatch):
 @pytest.mark.parametrize(("seed", "text", "expected"), VECTORS["hashWith"])
 def test_hash_with_matches_node_vectors(seed, text, expected):
     assert hash_with(seed)(text) == expected
+
+
+def _hash_with_reference(seed: int):
+    """The straightforward port, one JS operator helper per step. ``hash_with`` inlines these."""
+    base = to_uint32(seed)
+
+    def h(s: str) -> int:
+        x = base
+        for c in utf16_units(s):
+            x = js_xor(x, c)
+            x = to_uint32(
+                x + js_shl(x, 1) + js_shl(x, 4) + js_shl(x, 7) + js_shl(x, 8) + js_shl(x, 24)
+            )
+        return x
+
+    return h
+
+
+def test_hash_with_matches_reference_implementation():
+    rng = random.Random(1234)
+    pools = ((0, 0x7F), (0x80, 0xD7FF), (0xE000, 0xFFFF), (0x10000, 0x10FFFF))  # no lone surrogates
+    for _ in range(2000):
+        seed = rng.choice([rng.randrange(-(2**40), 2**40), 0, -1, 2**31, 2**32 - 1])
+        text = "".join(chr(rng.randrange(*rng.choice(pools))) for _ in range(rng.randrange(0, 40)))
+        assert hash_with(seed)(text) == _hash_with_reference(seed)(text), (seed, text)
 
 
 @pytest.mark.parametrize(("x", "y", "z", "expected"), VECTORS["domSum"])

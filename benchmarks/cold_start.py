@@ -29,7 +29,7 @@ def _time_subprocess(code: str, repeat: int) -> float:
             [sys.executable, "-c", code],
             stdout=subprocess.DEVNULL,
             stderr=subprocess.DEVNULL,
-            check=False,
+            check=True,
         )
         times.append((time.perf_counter() - started) * 1000)
     return statistics.median(times)

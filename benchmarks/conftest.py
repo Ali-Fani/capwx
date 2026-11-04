@@ -13,7 +13,7 @@ import pytest
 from capwx import MemoryStore
 from capwx.challenge import create_challenge
 from capwx.config import CapConfig, InstrumentationOptions
-from capwx.protocols.hashwx import hashwx_ready
+from capwx.protocols.hashwx import hashwx_available, hashwx_ready
 from tests._solver import body_for
 
 SECRET = "capwx-benchmarks-0123456789"  # >= 16 bytes
@@ -29,7 +29,8 @@ def _wasmtime_warm() -> None:
     Cold costs (import, module compile, first hash) are measured separately in ``cold_start.py``:
     in-process warm-up would otherwise hide them inside whichever benchmark happened to run first.
     """
-    hashwx_ready()
+    if hashwx_available():  # without wasmtime only the HashWX benchmarks should fail
+        hashwx_ready()
 
 
 @pytest.fixture(scope="session")

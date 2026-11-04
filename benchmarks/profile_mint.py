@@ -67,13 +67,14 @@ def stage_breakdown(repeat: int) -> None:
 
     def times(level: int) -> dict[str, float]:
         script = script_for_level(level)
+        final = apply_obfuscation(script, level)  # what the pipeline actually deflates
         return {
             "generate_instrumentation": _median_ms(
                 lambda: generate_instrumentation({"obfuscation_level": level}), repeat
             ),
             "build_client_script": _median_ms(lambda: script_for_level(level), repeat),
             "apply_obfuscation": _median_ms(lambda: apply_obfuscation(script, level), repeat),
-            "build_blob": _median_ms(lambda: build_blob(script), repeat),
+            "build_blob": _median_ms(lambda: build_blob(final), repeat),
         }
 
     level3, level7 = times(3), times(7)
@@ -96,11 +97,11 @@ def profile(label: str, fn: Callable[[], Any], repeat: int) -> None:
     for _ in range(repeat):
         fn()
     profiler.disable()
-    stream = io.StringIO()
-    stats = pstats.Stats(profiler, stream=stream)
-    stats.sort_stats("tottime").print_stats(12)
-    print(f"\n## cProfile: {label} ({repeat} calls)\n")
-    print("\n".join(stream.getvalue().splitlines()[4:]))
+    for key, heading in (("tottime", "by own time"), ("cumtime", "by cumulative time")):
+        stream = io.StringIO()
+        pstats.Stats(profiler, stream=stream).sort_stats(key).print_stats(12)
+        print(f"\n## cProfile: {label} {heading} ({repeat} calls)\n")
+        print("\n".join(stream.getvalue().splitlines()[4:]))
 
 
 def main() -> None:
