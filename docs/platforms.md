@@ -87,3 +87,10 @@ lists about 60 wheels on PyPI (CPython 3.11 to 3.14, PyPy, Linux glibc and musl 
 Windows). capwx does not need that, because the native code lives in the separate `wasmtime` dependency,
 which provides its own platform wheels. That is why the marker above is needed: it controls
 whether the native dependency is installed at all.
+
+## Would native be better?
+
+Whether a per-platform native HashWX library would beat the wasm, and what it would cost, is measured
+in [native-code-evaluation.md](native-code-evaluation.md). The short answer: it is about 9x faster
+per verification. The `wasmtime` fallback stays installed, so the 22.6 MB package only goes away if
+wasmtime becomes optional. It needs one binary per platform and keeps the LGPL-3.0 source-offer obligations that `hashwx.wasm` already has.
