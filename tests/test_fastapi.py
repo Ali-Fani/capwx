@@ -7,6 +7,7 @@ The whole module is skipped when fastapi or httpx is not installed.
 from __future__ import annotations
 
 import asyncio
+import json
 import shutil
 import subprocess
 import sys
@@ -21,7 +22,7 @@ pytest.importorskip("httpx")
 
 import httpx
 from _solver import body_for, expected_entries, solve_instrumentation
-from fastapi import Depends, FastAPI, HTTPException, Request
+from fastapi import Depends, FastAPI, Form, HTTPException, Request
 from fastapi.testclient import TestClient
 
 import capwx.challenge
@@ -338,6 +339,42 @@ def _has_multipart() -> bool:
     return True
 
 
+def _form_parameter_client(cap: Cap) -> TestClient:
+    app = make_app(cap)
+
+    # FastAPI parses this Form parameter before the dependency runs.
+    @app.post("/form-orders", dependencies=[Depends(cap.require("login"))])
+    async def form_orders(name: str = Form(...)) -> dict[str, str]:
+        return {"name": name}
+
+    return TestClient(app)
+
+
+def test_token_is_read_from_a_form_body_that_fastapi_already_parsed() -> None:
+    pytest.importorskip("multipart")  # FastAPI requires python-multipart to declare Form()
+    cap = make_cap()
+    client = _form_parameter_client(cap)
+    token = _token(client)
+    urlencoded = client.post("/form-orders", data={"name": "a", "cap-token": token})
+    assert urlencoded.status_code == 200, urlencoded.content
+    assert urlencoded.json() == {"name": "a"}
+    replay = client.post("/form-orders", data={"name": "a", "cap-token": token})
+    assert replay.status_code == 403
+    assert replay.json() == {"error": "captcha_required"}
+    multipart = client.post(
+        "/form-orders", data={"name": "b"}, files={"cap-token": (None, _token(client))}
+    )
+    assert multipart.status_code == 200, multipart.content
+
+
+def test_form_parameter_route_without_a_token_is_403() -> None:
+    pytest.importorskip("multipart")
+    client = _form_parameter_client(make_cap())
+    response = client.post("/form-orders", data={"name": "a"})
+    assert response.status_code == 403
+    assert response.json() == {"error": "captcha_required"}
+
+
 def test_token_from_a_custom_header_and_field() -> None:
     cap = make_cap()
     app = make_app(cap)
@@ -571,6 +608,12 @@ def test_site_name_must_be_a_safe_path_segment() -> None:
         Cap({"bad/name": SHA}, store=AsyncMemoryStore())
 
 
+@pytest.mark.parametrize("name", [".", ".."])
+def test_dot_site_names_are_refused(name: str) -> None:
+    with pytest.raises(CapwxError, match="must match"):
+        Cap({name: SHA}, store=AsyncMemoryStore())
+
+
 def test_sync_store_is_rejected() -> None:
     with pytest.raises(CapwxError, match="must be async"):
         Cap({"login": SHA}, store=MemoryStore())
@@ -594,9 +637,10 @@ def test_hooks_must_be_callable(label: str) -> None:
         Cap({"login": SHA}, store=AsyncMemoryStore(), **{label: "a string"})  # type: ignore[arg-type]
 
 
-def test_site_secret_must_not_be_empty() -> None:
+@pytest.mark.parametrize("secret", ["", 42, b"x"])
+def test_site_secret_must_be_a_non_empty_str(secret: Any) -> None:
     with pytest.raises(CapwxError, match="non-empty"):
-        SiteSettings(config=SHA, site_secret="")
+        SiteSettings(config=SHA, site_secret=secret)
 
 
 def test_site_secret_is_not_shown_in_repr() -> None:
@@ -651,7 +695,6 @@ def test_missing_asset_is_refused(tmp_path: Path, monkeypatch: pytest.MonkeyPatc
     [
         ("{", "cannot read the asset manifest"),
         ("[]", "no 'files' object"),
-        ('{"files": {"cap.min.js": {}}}', "no sha256 for cap.min.js"),
     ],
 )
 def test_bad_manifest_is_refused(
@@ -661,6 +704,47 @@ def test_bad_manifest_is_refused(
     (copied / "VERSIONS.json").write_text(manifest, encoding="utf-8")
     with pytest.raises(CapwxError, match=message):
         make_cap().mount_assets(FastAPI())
+
+
+def test_manifest_entry_without_sha256_is_refused(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    copied = _copy_assets(tmp_path, monkeypatch)
+    manifest = json.loads((copied / "VERSIONS.json").read_text(encoding="utf-8"))
+    manifest["files"]["cap.min.js"] = {}
+    (copied / "VERSIONS.json").write_text(json.dumps(manifest), encoding="utf-8")
+    with pytest.raises(CapwxError, match="no sha256 for cap.min.js"):
+        make_cap().mount_assets(FastAPI())
+
+
+@pytest.mark.parametrize(
+    "name", ["cap.min.js", "cap_wasm_bg.wasm", "hashwx.wasm", "pako_inflate.min.js"]
+)
+def test_manifest_without_a_required_entry_is_refused(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, name: str
+) -> None:
+    copied = _copy_assets(tmp_path, monkeypatch)
+    manifest = json.loads((copied / "VERSIONS.json").read_text(encoding="utf-8"))
+    del manifest["files"][name]
+    (copied / "VERSIONS.json").write_text(json.dumps(manifest), encoding="utf-8")
+    with pytest.raises(CapwxError, match=f"no entry for {name}"):
+        make_cap().mount_assets(FastAPI())
+
+
+def test_empty_manifest_files_is_refused(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    copied = _copy_assets(tmp_path, monkeypatch)
+    (copied / "VERSIONS.json").write_text('{"files": {}}', encoding="utf-8")
+    with pytest.raises(CapwxError, match="no entry for cap.min.js"):
+        assets_module.check_assets()
+
+
+def test_unreadable_asset_is_a_capwx_error(monkeypatch: pytest.MonkeyPatch) -> None:
+    def refuse(self: Path) -> bytes:
+        raise PermissionError("denied")
+
+    monkeypatch.setattr(Path, "read_bytes", refuse)
+    with pytest.raises(CapwxError, match="cannot read vendored asset cap.min.js"):
+        assets_module.check_assets()
 
 
 def test_check_assets_passes_for_the_vendored_files() -> None:

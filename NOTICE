@@ -13,7 +13,8 @@ This product includes and/or is derived from the following third-party works:
    Pinned commit: 29bbe6fbe284786cdb0d4489e5040aee6042b2a4
    Ported parts: core/src (capjs-core 0.1.5) protocol logic, instrumentation
    generation and detection.
-   Vendored browser assets (src/capwx/_assets/, served by Django at static/capwx/):
+   Vendored browser assets (src/capwx/_assets/, served by Django at static/capwx/
+   and by FastAPI's mount_assets() at /cap-static/):
    cap-widget 0.1.58 (cap.min.js), @cap.js/wasm 0.0.8 (cap_wasm_bg.wasm),
    pako 2.1.0 (pako_inflate.min.js, MIT).
 
@@ -42,8 +43,11 @@ This product includes and/or is derived from the following third-party works:
      date you received this distribution, and for as long as capwx distributes
      the binary.
    - You may replace hashwx.wasm with a modified or rebuilt version. Server side,
-     set CapConfig(hashwx_wasm_path=...). Browser side, overwrite the static file
-     static/capwx/hashwx.wasm and collect static files again. The licence text is
-     in src/capwx/_vendor/hashwx/LICENSE and in third_party/hashwx/LICENSE.
+     set CapConfig(hashwx_wasm_path=...). Browser side, with Django, overwrite the
+     static file static/capwx/hashwx.wasm and collect static files again. Browser side,
+     with FastAPI, replace src/capwx/_assets/hashwx.wasm in your installation and update
+     the sha256 and bytes of hashwx.wasm in src/capwx/_assets/VERSIONS.json to match,
+     or mount_assets() refuses to mount. The licence text is in
+     src/capwx/_vendor/hashwx/LICENSE and in third_party/hashwx/LICENSE.
 
 Full details, pins and the re-sync procedure are in UPSTREAM.md.

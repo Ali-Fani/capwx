@@ -306,7 +306,13 @@ in [Content Security Policy](../README.md#content-security-policy) in the README
 
 The files are served from the installed package, so there is no copy to keep in sync. The widget also
 needs `cap.min.js`, `hashwx.wasm`, `cap_wasm_bg.wasm` and `pako_inflate.min.js`, which `scripts()` names.
-Only change them through the project's `scripts/vendor_assets.py`.
+Maintainers change the vendored files only through the project's `scripts/vendor_assets.py`.
+
+To serve a modified `hashwx.wasm` to the browser, replace `src/capwx/_assets/hashwx.wasm` in your
+installation, and update the `sha256` and `bytes` of `hashwx.wasm` in `src/capwx/_assets/VERSIONS.json`
+to match. If they do not match the file, `mount_assets()` raises `CapwxError`. Server side, set
+`CapConfig(hashwx_wasm_path=...)` as described in `third_party/hashwx/README.capwx.md`. There is no
+collectstatic step with FastAPI.
 
 ## Limits
 

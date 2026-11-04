@@ -54,7 +54,13 @@ async def _token(request: Request, field: str, header: str) -> object:
     content_type = request.headers.get("content-type", "").split(";", 1)[0].strip().lower()
     if content_type not in (_JSON, _URLENCODED, _MULTIPART):
         return None
-    body = await read_limited_body(request)  # bounded, and cached for the endpoint
+    if content_type != _JSON and request.method != "POST":
+        return None
+    try:
+        body = await read_limited_body(request)  # bounded, and cached for the endpoint
+    except RuntimeError:  # FastAPI already read the stream for a Form/File parameter
+        form = getattr(request, "_form", None)  # Starlette caches the parsed form here
+        return None if form is None else form.get(field)
     if body is None:
         return None
     if content_type == _JSON:
@@ -63,8 +69,6 @@ async def _token(request: Request, field: str, header: str) -> object:
         except (UnicodeDecodeError, ValueError, RecursionError):
             return None
         return None if data is None else data.get(field)
-    if request.method != "POST":
-        return None
     if content_type == _URLENCODED:
         return dict(parse_qsl(body.decode("utf-8", errors="replace"))).get(field)
     try:

@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+from typing import Final
 
 from starlette.applications import Starlette
 from starlette.staticfiles import StaticFiles
@@ -18,10 +19,13 @@ from capwx._types import as_json_dict
 from capwx.errors import CapwxError
 
 MANIFEST = "VERSIONS.json"
+# The files the widget and scripts() need; the manifest must list each of them.
+REQUIRED_ASSETS: Final = ("cap.min.js", "cap_wasm_bg.wasm", "hashwx.wasm", "pako_inflate.min.js")
 
 
 def check_assets() -> None:
-    """Raise CapwxError unless every file in VERSIONS.json exists and matches its sha256."""
+    """Raise CapwxError unless every required file is listed in VERSIONS.json, and every listed
+    file exists and matches its sha256."""
     manifest_path = ASSETS_DIR / MANIFEST
     try:
         manifest = as_json_dict(json.loads(manifest_path.read_text(encoding="utf-8")))
@@ -30,6 +34,9 @@ def check_assets() -> None:
     files = as_json_dict(manifest.get("files")) if manifest is not None else None
     if files is None:
         raise CapwxError(f"the asset manifest {manifest_path} has no 'files' object")
+    for required in REQUIRED_ASSETS:
+        if required not in files:
+            raise CapwxError(f"the asset manifest {manifest_path} has no entry for {required}")
     for name, meta in files.items():
         entry = as_json_dict(meta)
         expected = entry.get("sha256") if entry is not None else None
@@ -38,7 +45,11 @@ def check_assets() -> None:
         path = ASSETS_DIR / name
         if not path.is_file():
             raise CapwxError(f"vendored asset {name} is missing from {ASSETS_DIR}")
-        if hashlib.sha256(path.read_bytes()).hexdigest() != expected:
+        try:
+            data = path.read_bytes()
+        except OSError as exc:
+            raise CapwxError(f"cannot read vendored asset {name}: {exc}") from exc
+        if hashlib.sha256(data).hexdigest() != expected:
             raise CapwxError(f"vendored asset {name} does not match {MANIFEST} (sha256 mismatch)")
 
 

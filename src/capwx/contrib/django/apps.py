@@ -23,6 +23,10 @@ class CapwxConfig(AppConfig):
         if assets_entry not in dirs:
             dirs.append(assets_entry)
             settings.STATICFILES_DIRS = dirs
+            # The finders cache their locations; clear it so an earlier lookup cannot hide the assets.
+            from django.contrib.staticfiles import finders
+
+            finders.get_finder.cache_clear()
 
         conf = validate_settings()  # raises ImproperlyConfigured on bad CAPWX settings
         hashwx_sites = sorted(

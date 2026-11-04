@@ -102,6 +102,9 @@ that HashWX component whenever you distribute it.
 - **Browser (Django):** overwrite `static/capwx/hashwx.wasm` in your deployment (for example by
   replacing the file in `STATIC_ROOT` after `collectstatic`), then reload. The browser copy is
   loaded by the widget and must behave like the upstream build.
+- **Browser (FastAPI):** replace `src/capwx/_assets/hashwx.wasm` in your installation, and update
+  the `sha256` and `bytes` of `hashwx.wasm` in `src/capwx/_assets/VERSIONS.json` to match the new
+  file. Otherwise `mount_assets()` raises `CapwxError`. Then reload. There is no collectstatic step.
 
 Note that a replacement that solves differently from upstream will produce challenges that
 other clients cannot verify.

@@ -44,7 +44,10 @@ class SiteSettings:
     site_secret: str | None = field(default=None, repr=False)
 
     def __post_init__(self) -> None:
-        if self.site_secret is not None and not self.site_secret:
+        # Untyped callers can pass anything, so check the runtime type too.
+        if self.site_secret is not None and (
+            type(self.site_secret) is not str or not self.site_secret
+        ):
             raise CapwxError("site_secret must be a non-empty string")
 
 
@@ -73,7 +76,8 @@ class Cap:
         pairs: list[tuple[str, object]] = list(sites.items())
         resolved: dict[str, SiteSettings] = {}
         for name, value in pairs:
-            if not _SITE_NAME_RE.fullmatch(name):
+            # The regex admits "." and "..", which are path segments that climb out of the URL.
+            if not _SITE_NAME_RE.fullmatch(name) or name in (".", ".."):
                 raise CapwxError(f"site name {name!r} must match [A-Za-z0-9_.-]{{1,64}}")
             if isinstance(value, SiteSettings):
                 entry = value

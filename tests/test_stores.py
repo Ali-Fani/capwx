@@ -321,6 +321,18 @@ def test_memory_lazy_purge_bounds_memory():
     assert len(store._data) == 1
 
 
+def test_memory_expired_entries_read_as_expired_even_when_unpurged():
+    clock = FakeClock()
+    store = MemoryStore(clock=clock, purge_limit=0)  # a purge that removes nothing
+    store.claim("n", 1)
+    store.put("t", 5, 1)
+    clock.advance(1)
+    assert store.peek("t") is None
+    assert store.claim("n", 1) is True  # the expired claim does not block
+    assert store.take("t") is None
+    assert store.peek("n") is not None
+
+
 def test_memory_overwrite_keeps_latest_expiry():
     clock = FakeClock()
     store = MemoryStore(clock=clock)
@@ -539,6 +551,45 @@ def test_async_memory_store_expiry_uses_injected_clock():
         assert await store.claim("n", 10) is True  # the old claim has expired
         assert await store.take("t") is None  # the token has expired too
         assert await store.peek("t") is None
+
+    asyncio.run(scenario())
+
+
+def test_async_memory_store_backlog_larger_than_the_purge_limit_drains_across_calls():
+    from capwx.stores.memory import ASYNC_PURGE_LIMIT
+
+    clock = FakeClock()
+    backlog = ASYNC_PURGE_LIMIT + 500
+
+    async def scenario():
+        store = AsyncMemoryStore(clock)
+        for i in range(backlog):
+            await store.put(f"t{i}", i, 1)
+        clock.advance(2)  # the whole backlog is expired, none of it is purged yet
+        data = store._store._data
+        assert len(data) == backlog
+        assert await store.peek("t0") is None  # one call removes at most the limit
+        assert len(data) == backlog - ASYNC_PURGE_LIMIT
+        assert await store.take(f"t{backlog - 1}") is None  # the next call drains the rest
+        assert len(data) == 0
+
+    asyncio.run(scenario())
+
+
+def test_async_memory_store_expiry_is_correct_during_a_backlog():
+    from capwx.stores.memory import ASYNC_PURGE_LIMIT
+
+    clock = FakeClock()
+
+    async def scenario():
+        store = AsyncMemoryStore(clock)
+        for i in range(ASYNC_PURGE_LIMIT + 10):
+            await store.put(f"t{i}", i, 1)
+        await store.put("live", 9, 100)
+        clock.advance(2)
+        assert await store.claim("t1", 30) is True  # expired and unpurged: claimable again
+        assert await store.take("live") == 9  # live entries are untouched by the backlog
+        assert await store.take("live") is None
 
     asyncio.run(scenario())
 
