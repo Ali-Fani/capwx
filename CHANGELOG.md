@@ -3,6 +3,25 @@
 All notable changes to this project are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased]
+
+### Added
+
+- FastAPI integration (`capwx.contrib.fastapi`), installed with `pip install 'capwx[fastapi]'`: a `Cap`
+  object with the widget router (challenge, redeem, siteverify), `cap.require(site)` as a dependency,
+  `mount_assets()`, `scripts()` and `widget()`, the `Blocked` exception and the `before_challenge` and
+  `difficulty_hook` hooks. Guide: [docs/fastapi.md](docs/fastapi.md).
+- `AsyncMemoryStore` (`capwx.stores.memory`), an async, process-local store for development and tests.
+
+### Changed
+
+- `acreate_challenge` and `aredeem` now run CPU-bound minting and verification in a worker thread
+  instead of on the event loop.
+- The vendored widget files moved from `src/capwx/contrib/django/static/capwx/` to `src/capwx/_assets/`.
+  Django still serves them at the same URLs (`/static/capwx/...`), because its app config adds the
+  directory to `STATICFILES_DIRS`, so Django users change nothing. Custom setups that read the old package
+  path must use the installed package's `capwx/_assets/` directory instead.
+
 ## [0.3.0] - 2026-10-24
 
 ### Fixed

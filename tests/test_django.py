@@ -68,6 +68,24 @@ def test_apps_ready_registers_the_capwx_app():
     assert apps.get_app_config("capwx").name == "capwx.contrib.django"
 
 
+def test_ready_clears_the_finder_cache_so_the_assets_are_findable(monkeypatch):
+    import os
+
+    from django.contrib.staticfiles import finders
+
+    from capwx._assets_path import ASSETS_DIR
+
+    # Django joins the prefix with os.sep, so the lookup path must use os.path.join.
+    wasm = os.path.join("capwx", "hashwx.wasm")
+    entry = ("capwx", str(ASSETS_DIR))
+    dirs = [d for d in settings.STATICFILES_DIRS if d != entry]
+    monkeypatch.setattr(settings, "STATICFILES_DIRS", dirs)  # monkeypatch restores the original
+    finders.get_finder.cache_clear()
+    assert finders.find(wasm) is None  # the finder now caches a list without capwx
+    apps.get_app_config("capwx").ready()  # adds the entry, which must reset the cache
+    assert finders.find(wasm) is not None
+
+
 def test_missing_secret_is_improperly_configured():
     cfg = copy.deepcopy(BASE)
     del cfg["SECRET"]

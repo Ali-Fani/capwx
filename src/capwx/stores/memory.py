@@ -16,6 +16,8 @@ import time
 from collections.abc import Callable
 from typing import cast
 
+ASYNC_PURGE_LIMIT = 1000  # expired entries removed per AsyncMemoryStore call
+
 
 def _expiry(entry: tuple[float, object] | None) -> int | None:
     """The stored ``expires_ms`` of a TokenStore entry (``take``/``peek``); None when absent."""
@@ -23,20 +25,32 @@ def _expiry(entry: tuple[float, object] | None) -> int | None:
 
 
 class MemoryStore:
-    def __init__(self, clock: Callable[[], float] = time.time) -> None:
-        """``clock`` returns seconds (like ``time.time``); inject a fake one in tests."""
+    def __init__(
+        self, clock: Callable[[], float] = time.time, *, purge_limit: int | None = None
+    ) -> None:
+        """``clock`` returns seconds (like ``time.time``); inject a fake one in tests.
+        ``purge_limit`` caps the expired entries removed per call (None: all of them)."""
         self._clock = clock
+        self._purge_limit = purge_limit
         self._lock = threading.Lock()
         self._data: dict[str, tuple[float, object]] = {}  # key -> (expires_at_s, value)
         self._heap: list[tuple[float, str]] = []  # (expires_at_s, key); may contain stale entries
 
-    def _purge(self, now: float) -> None:
+    def _purge(self, now: float, limit: int | None = None) -> None:
         heap = self._heap
-        while heap and heap[0][0] <= now:
+        popped = 0
+        while heap and heap[0][0] <= now and (limit is None or popped < limit):
             _, key = heapq.heappop(heap)
+            popped += 1
             entry = self._data.get(key)
             if entry is not None and entry[0] <= now:
                 del self._data[key]
+
+    def _live(self, key: str, now: float) -> tuple[float, object] | None:
+        """The entry for ``key`` if it has not expired. A bounded purge may leave expired entries
+        behind, so every lookup checks the entry's own expiry."""
+        entry = self._data.get(key)
+        return None if entry is None or entry[0] <= now else entry
 
     def _set(self, key: str, value: object, expires_at: float) -> None:
         self._data[key] = (expires_at, value)
@@ -52,8 +66,8 @@ class MemoryStore:
     def claim(self, key: str, ttl_seconds: int) -> bool:
         with self._lock:
             now = self._clock()
-            self._purge(now)
-            if key in self._data:
+            self._purge(now, self._purge_limit)
+            if self._live(key, now) is not None:
                 return False
             self._set(key, True, now + ttl_seconds)
             return True
@@ -62,18 +76,43 @@ class MemoryStore:
     def put(self, key: str, expires_ms: int, ttl_seconds: int) -> None:
         with self._lock:
             now = self._clock()
-            self._purge(now)
+            self._purge(now, self._purge_limit)
             self._set(key, expires_ms, now + ttl_seconds)
 
     def take(self, key: str) -> int | None:
         with self._lock:
-            self._purge(self._clock())
+            now = self._clock()
+            self._purge(now, self._purge_limit)
             entry = self._data.pop(key, None)
-            return _expiry(entry)
+            return None if entry is None or entry[0] <= now else _expiry(entry)
 
     def peek(self, key: str) -> int | None:
         """Non-destructive read (used by validate_token(consume=False))."""
         with self._lock:
-            self._purge(self._clock())
-            entry = self._data.get(key)
-            return _expiry(entry)
+            now = self._clock()
+            self._purge(now, self._purge_limit)
+            return _expiry(self._live(key, now))
+
+
+class AsyncMemoryStore:
+    """MemoryStore with ``async def`` methods, for the ``a*`` API (aredeem, avalidate_token).
+
+    It awaits nothing: the work is a dict operation under a lock, so no thread hop is needed.
+    """
+
+    def __init__(self, clock: Callable[[], float] = time.time) -> None:
+        # Bounded so one call never blocks the event loop on a large expired backlog; the
+        # rest is removed by later calls, and lookups ignore expired entries meanwhile.
+        self._store = MemoryStore(clock, purge_limit=ASYNC_PURGE_LIMIT)
+
+    async def claim(self, key: str, ttl_seconds: int) -> bool:
+        return self._store.claim(key, ttl_seconds)
+
+    async def put(self, key: str, expires_ms: int, ttl_seconds: int) -> None:
+        self._store.put(key, expires_ms, ttl_seconds)
+
+    async def take(self, key: str) -> int | None:
+        return self._store.take(key)
+
+    async def peek(self, key: str) -> int | None:
+        return self._store.peek(key)

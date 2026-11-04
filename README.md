@@ -1,8 +1,8 @@
 # capwx
 
 Python server for the [Cap](https://github.com/tiagozip/cap) CAPTCHA widget: HashWX and
-sha256-pow proof-of-work challenges, browser instrumentation checks, and Django / Django Ninja
-integration.
+sha256-pow proof-of-work challenges, browser instrumentation checks, and integrations for Django,
+Django Ninja, Django REST Framework, django-bolt and FastAPI.
 
 > **Unofficial.** `capwx` is an independent port. It is not affiliated with, endorsed by, or
 > supported by Cap or its authors.
@@ -40,16 +40,27 @@ Upstream pins (details in [UPSTREAM.md](UPSTREAM.md)):
 
 ## Install
 
+Pick the integration for your framework. The core needs none of them.
+
+| Integration | Install | Guide |
+|---|---|---|
+| Django (views and template tags) | `pip install "capwx[django]"` | [Django quickstart](#django-quickstart) |
+| Django Ninja | `pip install "capwx[ninja]"` | [Django Ninja](#django-ninja) |
+| Django REST Framework | `pip install "capwx[drf]"` | [docs/drf.md](docs/drf.md) |
+| django-bolt (Python 3.12+) | `pip install "capwx[bolt]"` | [docs/bolt.md](docs/bolt.md) |
+| FastAPI (async) | `pip install "capwx[fastapi]"` | [docs/fastapi.md](docs/fastapi.md) |
+
 ```bash
 pip install capwx                 # core: wasmtime and cryptography
 pip install "capwx[django]"       # Django integration
 pip install "capwx[ninja]"        # Django Ninja integration (also pulls in Django)
 pip install "capwx[drf]"          # Django REST Framework integration (also pulls in Django)
 pip install "capwx[bolt]"         # django-bolt integration (Python 3.12+; also pulls in Django)
-pip install "capwx[redis]"        # RedisStore (you bring the redis-py client)
+pip install "capwx[fastapi]"      # FastAPI integration (also pulls in fastapi)
+pip install "capwx[redis]"        # RedisStore and AsyncRedisStore (you bring the redis-py client)
 ```
 
-With uv: `uv add "capwx[django,ninja,drf,bolt,redis]"`.
+With uv: `uv add "capwx[django,ninja,drf,bolt,fastapi,redis]"`.
 
 Python 3.10 to 3.14. `capwx` is pure Python and ships one universal wheel. HashWX needs wasmtime, which
 is installed automatically on x86-64 and ARM64 Linux, macOS and Windows. On other CPUs (32-bit, armv7,
@@ -59,7 +70,7 @@ ppc64le, s390x) the package still installs and `sha256-pow` and `instrumentation
 For development from a checkout:
 
 ```bash
-uv sync --group dev --extra django --extra ninja --extra drf --extra bolt
+uv sync --group dev --extra django --extra ninja --extra drf --extra bolt --extra fastapi
 uv run pytest
 ```
 
@@ -329,7 +340,8 @@ solution or token cannot be used twice.
 | `MemoryStore` | Development and tests only. Process-local. | No |
 | `DjangoCacheStore` | The default for Django. Uses `django.core.cache` with an alias. | Yes, on backends where `cache.add` is atomic: Redis, Memcached and locmem. Not the database cache backend. |
 | `RedisStore(client)` | Production. Takes a `redis.Redis` client. Uses `SET NX` and `GETDEL` (or a transaction). | Yes |
-| `AsyncRedisStore(client)` | Async code paths (`aredeem`, `avalidate_token`). Takes a `redis.asyncio.Redis` client. | Yes |
+| `AsyncRedisStore(client)` | Async code paths (`aredeem`, `avalidate_token`) and the FastAPI integration. Takes a `redis.asyncio.Redis` client. | Yes |
+| `AsyncMemoryStore` | Development and tests only, for the FastAPI integration. Process-local. | No |
 
 For production, pass a Redis store instance:
 
@@ -352,7 +364,8 @@ The Django views need a synchronous store. An async store in `CAPWX["STORE"]` is
   environment, for example `python -c "import secrets; print(secrets.token_urlsafe(32))"`. Keep it out
   of source control. Rotating it invalidates outstanding challenges and tokens.
 - **Stores.** `MemoryStore` is per process: a second worker cannot see the first worker's nonces or
-  tokens, so replay protection and single use do not hold. Use `RedisStore` in production. Use
+  tokens, so replay protection and single use do not hold. Use `RedisStore` in production (or
+  `AsyncRedisStore` with FastAPI). Use
   `DjangoCacheStore` only on a cache backend with an atomic `add`.
 - **Stateless tokens.** Without a token store, `issue_token` returns a stateless token. It is valid
   until `token_ttl_ms` and can be replayed inside that window. Use short token lifetimes with it, and
@@ -384,7 +397,8 @@ The vendored `hashwx.wasm` is the HashWX binary by tevador, licensed under the G
 Public License v3.0. It is shipped as a separate file, with its licence beside it:
 
 - `src/capwx/_vendor/hashwx/hashwx.wasm`, `LICENSE`, `COMMIT`, `SHA256`
-- `static/capwx/hashwx.wasm` and `static/capwx/hashwx-LICENSE.txt` (the browser copy)
+- `src/capwx/_assets/hashwx.wasm` and `src/capwx/_assets/hashwx-LICENSE.txt` (the browser copy,
+  served by Django at `static/capwx/` and by FastAPI's `mount_assets()` at `/cap-static/`)
 
 The HashWX C source is not included in capwx, and capwx does not link to a HashWX library. You can
 replace the server wasm with your own build through `hashwx_wasm_path`. The browser assets are
@@ -422,7 +436,8 @@ out:
 ## Known limitations
 
 - Beta. The API may still change in minor releases.
-- The Django views need a synchronous store.
+- The Django views need a synchronous store. The FastAPI integration needs an async one
+  (`AsyncMemoryStore` or `AsyncRedisStore`); a synchronous store is rejected when `Cap` is built.
 - Stateless tokens can be replayed until they expire.
 - The database cache backend does not give single use under concurrency. Use Redis.
 - A replacement `hashwx_wasm_path` is not hash-checked.
