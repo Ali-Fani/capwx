@@ -6,7 +6,7 @@ wheel. The design record is `capwx.plan.md`; upstream pins are in `UPSTREAM.md`.
 ## Commands (always through uv)
 
 ```bash
-uv sync --group dev --group e2e --extra django --extra ninja --extra drf --extra bolt
+uv sync --group dev --group e2e --extra django --extra ninja --extra drf --extra bolt --extra fastapi
 uv run pytest -q                      # unit suite (default)
 uv run pytest -m node -q              # interop with capjs-core (installs into a pytest temp dir)
 uv run pytest -m e2e tests/e2e -q     # real-browser tests (needs Playwright/Chrome)

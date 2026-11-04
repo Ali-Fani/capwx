@@ -41,7 +41,7 @@ now pins the fix.
 | R4 | `DjangoCacheStore` is not single use on the database cache backend, where `add` is not atomic. | Django offers no atomic get-and-delete. | README "Stores", module docstring |
 | R5 | No rate limiting in capwx. | Belongs to the application or its proxy. | README "Security notes" |
 | R6 | The instrumentation probe is a heuristic, not a security boundary. The expected values come from the same program the client runs (the init values and the operations are in the generated script, and the blob is deflate and base64, not encryption), so they are not secret. The `==` comparison in `verify.py` is an integrity check, not a credential check. | Browser automation cannot be detected reliably. `block_automated_browsers` raises the cost only. | README "Security notes", `verify.py` docstring |
-| R7 | Browser assets under `static/capwx/` are not hash-checked at request time. | They are checked at build (`scripts/check_dist.py`) and by `capwx_check`. | `UPSTREAM.md` |
+| R7 | Browser assets under `src/capwx/_assets/` (served at `static/capwx/`) are not hash-checked at request time. | They are checked at build (`scripts/check_dist.py`) and by `capwx_check`. | `UPSTREAM.md` |
 | R8 | The instrumentation verifier is trusted not to raise (challenge.py does not wrap it). | Its docstring makes that promise, and the hostile-input test covers the common shapes. | `protocols/instrumentation/verify.py` docstring |
 
 ## CSRF

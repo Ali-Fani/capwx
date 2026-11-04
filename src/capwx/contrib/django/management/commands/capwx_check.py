@@ -19,6 +19,7 @@ Exits non-zero (``CommandError``) on any failure.
 from __future__ import annotations
 
 import hashlib
+import os
 import time
 from dataclasses import replace
 from typing import Any
@@ -36,7 +37,8 @@ from capwx.protocols.hashwx import missing_wasmtime_message
 
 _FORMAT_INFO = "cap:fmt2-v1"
 _U64 = (1 << 64) - 1
-_STATIC_WASM = "capwx/hashwx.wasm"
+# Finders match the prefix with os.sep, so the lookup path must use the native separator.
+_STATIC_WASM = os.path.join("capwx", "hashwx.wasm")
 
 # Low difficulty so the check is quick. The HashWX target is U64_MAX // d, so d=250 needs ~250
 # evaluations per challenge.

@@ -19,6 +19,7 @@ import uuid
 import pytest
 
 from capwx.stores import (
+    AsyncMemoryStore,
     AsyncNonceStore,
     AsyncTokenStore,
     NonceStore,
@@ -320,6 +321,18 @@ def test_memory_lazy_purge_bounds_memory():
     assert len(store._data) == 1
 
 
+def test_memory_expired_entries_read_as_expired_even_when_unpurged():
+    clock = FakeClock()
+    store = MemoryStore(clock=clock, purge_limit=0)  # a purge that removes nothing
+    store.claim("n", 1)
+    store.put("t", 5, 1)
+    clock.advance(1)
+    assert store.peek("t") is None
+    assert store.claim("n", 1) is True  # the expired claim does not block
+    assert store.take("t") is None
+    assert store.peek("n") is not None
+
+
 def test_memory_overwrite_keeps_latest_expiry():
     clock = FakeClock()
     store = MemoryStore(clock=clock)
@@ -492,3 +505,130 @@ def test_django_store_claim_and_take_locmem():
     assert store.peek(key + ":t") == 99
     assert store.take(key + ":t") == 99
     assert store.take(key + ":t") is None
+
+
+# ---------------------------------------------------------------- AsyncMemoryStore
+
+
+def test_async_memory_store_is_async_and_protocol_conformant():
+    store = AsyncMemoryStore()
+    assert is_async_store(store) is True
+    assert isinstance(store, AsyncNonceStore)
+    assert isinstance(store, AsyncTokenStore)
+
+
+def test_async_memory_store_claim_is_first_wins():
+    async def scenario():
+        store = AsyncMemoryStore(FakeClock())
+        assert await store.claim("n", 30) is True
+        assert await store.claim("n", 30) is False
+        assert await store.claim("other", 30) is True
+
+    asyncio.run(scenario())
+
+
+def test_async_memory_store_put_take_is_single_use_and_peek_is_not_destructive():
+    async def scenario():
+        store = AsyncMemoryStore(FakeClock())
+        await store.put("t", 77, 30)
+        assert await store.peek("t") == 77
+        assert await store.peek("t") == 77
+        assert await store.take("t") == 77
+        assert await store.take("t") is None
+        assert await store.peek("t") is None
+
+    asyncio.run(scenario())
+
+
+def test_async_memory_store_expiry_uses_injected_clock():
+    clock = FakeClock()
+
+    async def scenario():
+        store = AsyncMemoryStore(clock)
+        assert await store.claim("n", 10) is True
+        await store.put("t", 5, 10)
+        clock.advance(10.5)
+        assert await store.claim("n", 10) is True  # the old claim has expired
+        assert await store.take("t") is None  # the token has expired too
+        assert await store.peek("t") is None
+
+    asyncio.run(scenario())
+
+
+def test_async_memory_store_backlog_larger_than_the_purge_limit_drains_across_calls():
+    from capwx.stores.memory import ASYNC_PURGE_LIMIT
+
+    clock = FakeClock()
+    backlog = ASYNC_PURGE_LIMIT + 500
+
+    async def scenario():
+        store = AsyncMemoryStore(clock)
+        for i in range(backlog):
+            await store.put(f"t{i}", i, 1)
+        clock.advance(2)  # the whole backlog is expired, none of it is purged yet
+        data = store._store._data
+        assert len(data) == backlog
+        assert await store.peek("t0") is None  # one call removes at most the limit
+        assert len(data) == backlog - ASYNC_PURGE_LIMIT
+        assert await store.take(f"t{backlog - 1}") is None  # the next call drains the rest
+        assert len(data) == 0
+
+    asyncio.run(scenario())
+
+
+def test_async_memory_store_expiry_is_correct_during_a_backlog():
+    from capwx.stores.memory import ASYNC_PURGE_LIMIT
+
+    clock = FakeClock()
+
+    async def scenario():
+        store = AsyncMemoryStore(clock)
+        for i in range(ASYNC_PURGE_LIMIT + 10):
+            await store.put(f"t{i}", i, 1)
+        await store.put("live", 9, 100)
+        clock.advance(2)
+        assert await store.claim("t1", 30) is True  # expired and unpurged: claimable again
+        assert await store.take("live") == 9  # live entries are untouched by the backlog
+        assert await store.take("live") is None
+
+    asyncio.run(scenario())
+
+
+def test_async_memory_store_drives_aredeem_and_avalidate_token():
+    from _solver import body_for
+
+    from capwx.challenge import acreate_challenge, aredeem
+    from capwx.config import CapConfig
+    from capwx.errors import Reason
+    from capwx.tokens import avalidate_token
+
+    secret = "test-secret-0123456789abcdef"
+    cfg = CapConfig(
+        secret=secret,
+        protocols=("sha256-pow",),
+        sha256_difficulty=1,
+        sha256_count=2,
+        challenge_ttl_ms=60_000,
+        token_ttl_ms=60_000,
+    )
+    now = 1_700_000_000_000
+
+    async def scenario():
+        store = AsyncMemoryStore(FakeClock(start=now / 1000))
+        resp = await acreate_challenge(cfg, scope="login", now_ms=now)
+        body = body_for(secret, resp)
+        first = await aredeem(
+            cfg, body, scope="login", nonce_store=store, token_store=store, now_ms=now + 1
+        )
+        again = await aredeem(
+            cfg, body, scope="login", nonce_store=store, token_store=store, now_ms=now + 1
+        )
+        assert first.token is not None
+        valid = await avalidate_token(cfg, first.token, scope="login", token_store=store)
+        spent = await avalidate_token(cfg, first.token, scope="login", token_store=store)
+        return first.success, again.reason, valid, spent
+
+    success, reason, valid, spent = asyncio.run(scenario())
+    assert success is True
+    assert reason == Reason.ALREADY_REDEEMED
+    assert valid is True and spent is False

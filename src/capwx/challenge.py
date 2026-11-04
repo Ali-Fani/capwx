@@ -21,6 +21,7 @@ and a verify function to ``_VERIFIERS``. Then add the name to ``config.KNOWN_PRO
 
 from __future__ import annotations
 
+import asyncio
 import dataclasses
 import importlib
 import inspect
@@ -303,8 +304,16 @@ async def acreate_challenge(
     overrides: Mapping[str, Any] | None = None,
     now_ms: int | None = None,
 ) -> dict[str, Any]:
-    """Async twin of :func:`create_challenge`. Minting does no I/O, so this only awaits nothing."""
-    return create_challenge(config, scope=scope, extra=extra, overrides=overrides, now_ms=now_ms)
+    """Async twin of :func:`create_challenge`. Minting is CPU-bound, so it runs in a worker thread
+    (``asyncio.to_thread``) and the event loop stays free while the challenge is built."""
+    return await asyncio.to_thread(
+        create_challenge,
+        config,
+        scope=scope,
+        extra=extra,
+        overrides=overrides,
+        now_ms=now_ms,
+    )
 
 
 # --------------------------------------------------------------------------- verification
@@ -527,7 +536,8 @@ async def aredeem(
     now = _resolve_now(now_ms)
     site = _site_label(expected_scope)
 
-    checked = _verify_body(config, body, expected_scope, now)
+    # CPU-bound (hashing, HMAC, hashwx) runs in a worker thread; store calls stay on the loop.
+    checked = await asyncio.to_thread(_verify_body, config, body, expected_scope, now)
     if isinstance(checked, RedeemResult):
         return _finish(checked, site, started)
 

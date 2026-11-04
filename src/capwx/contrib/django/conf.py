@@ -39,6 +39,7 @@ from django.core.exceptions import ImproperlyConfigured
 from django.core.signals import setting_changed
 from django.utils.module_loading import import_string  # pyright: ignore[reportUnknownVariableType]
 
+from capwx._http import MAX_BODY_BYTES
 from capwx._types import as_json_list, as_mapping
 from capwx.config import CapConfig, InstrumentationOptions
 from capwx.errors import CapwxError
@@ -48,7 +49,6 @@ SETTING_NAME = "CAPWX"
 DEFAULT_SITE = "default"
 TOKEN_FIELD = "cap-token"  # the hidden input the widget fills; read by CapField and require_cap
 TOKEN_HEADER = "X-Cap-Token"
-MAX_BODY_BYTES = 64 * 1024
 DEFAULT_STORE = "capwx.stores.django_cache.DjangoCacheStore"
 
 _SITE_NAME_RE = re.compile(r"[A-Za-z0-9_.-]{1,64}")

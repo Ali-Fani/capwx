@@ -20,7 +20,7 @@ Vendored files:
 
 - `src/capwx/_vendor/hashwx/hashwx.wasm`, `LICENSE`, `COMMIT`, `SHA256`
   (server wasm, copied from `core/vendor/` at the pinned commit)
-- `src/capwx/contrib/django/static/capwx/` (browser assets, written by
+- `src/capwx/_assets/` (browser assets, written by
   `scripts/vendor_assets.py`, with `VERSIONS.json` holding sha256 of each file)
 - `third_party/hashwx/` (the unmodified HashWX source tree at the pinned commit, copied with
   `git archive`, with `LICENSE` and `README.capwx.md`). This is the LGPL-3.0 Corresponding Source

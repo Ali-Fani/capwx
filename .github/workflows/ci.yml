@@ -16,7 +16,7 @@ jobs:
       - uses: actions/checkout@v7
       - uses: astral-sh/setup-uv@v10.3.2
       - name: Sync dependencies
-        run: uv sync --group dev --extra django --extra ninja --extra drf --extra bolt
+        run: uv sync --group dev --extra django --extra ninja --extra drf --extra bolt --extra fastapi
       - name: ruff check
         run: uv run ruff check .
       - name: ruff format check
@@ -38,7 +38,7 @@ jobs:
       - name: Install Python ${{ matrix.python }}
         run: uv python install ${{ matrix.python }}
       - name: Sync dependencies
-        run: uv sync --group dev --extra django --extra ninja --extra drf --extra bolt --python ${{ matrix.python }}
+        run: uv sync --group dev --extra django --extra ninja --extra drf --extra bolt --extra fastapi --python ${{ matrix.python }}
       - name: "Unit tests with coverage (fails under 90% on src/capwx)"
         run: |
           uv run --python ${{ matrix.python }} coverage run -m pytest
@@ -74,7 +74,7 @@ jobs:
       - uses: actions/checkout@v7
       - uses: astral-sh/setup-uv@v10.3.2
       - name: Sync dependencies
-        run: uv sync --group dev --extra django --extra ninja --extra drf --extra bolt --extra redis
+        run: uv sync --group dev --extra django --extra ninja --extra drf --extra bolt --extra fastapi --extra redis
       - name: Redis store tests (not skipped here)
         run: uv run pytest tests/test_stores.py -v
 

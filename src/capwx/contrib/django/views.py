@@ -28,30 +28,17 @@ from django.middleware.csrf import CsrfViewMiddleware
 from django.views.decorators.cache import never_cache  # pyright: ignore[reportUnknownVariableType]
 from django.views.decorators.csrf import csrf_exempt  # pyright: ignore[reportUnknownVariableType]
 
+from capwx._http import MAX_BODY_BYTES, redeem_status, siteverify_status
 from capwx._types import as_json_dict
 from capwx.challenge import create_challenge, redeem
 from capwx.contrib.django._types import DjangoRequest
-from capwx.contrib.django.conf import MAX_BODY_BYTES, CapwxConf, SiteConf, get_conf
+from capwx.contrib.django.conf import CapwxConf, SiteConf, get_conf
 from capwx.errors import Reason
 from capwx.tokens import siteverify
 
 logger = logging.getLogger("capwx")
 
 _INVALID_JSON = object()
-
-# Redeem failures that are instrumentation or session-state problems answer 403.
-_FORBIDDEN_REASONS = frozenset(
-    {
-        Reason.EXPIRED.value,
-        Reason.ALREADY_REDEEMED.value,
-        Reason.SCOPE_MISMATCH.value,
-        Reason.ID_MISMATCH.value,
-        Reason.FAILED_CHALLENGE.value,
-        "missing_meta",
-        "invalid_meta",
-    }
-)
-_SITEVERIFY_STATUS = {"missing_parameters": 400, "invalid_secret": 403, "invalid_token": 400}
 
 
 def _json(status: int, data: Mapping[str, Any]) -> JsonResponse:
@@ -60,21 +47,6 @@ def _json(status: int, data: Mapping[str, Any]) -> JsonResponse:
 
 def _failure(status: int, error: str) -> JsonResponse:
     return _json(status, {"success": False, "error": error})
-
-
-def _reason_text(reason: object) -> str:
-    return reason.value if isinstance(reason, Reason) else str(reason)
-
-
-def redeem_status(reason: object) -> int:
-    """HTTP status for a failed redeem: 403 for expired/replayed/instrumentation, 500 for store
-    outages, 400 for everything else (malformed or invalid input)."""
-    text = _reason_text(reason)
-    if text == Reason.NONCE_STORE_ERROR.value:
-        return 500
-    if text in _FORBIDDEN_REASONS or text.startswith("instr_"):
-        return 403
-    return 400
 
 
 def _parse_json(data: bytes) -> Any:
@@ -202,7 +174,7 @@ def _siteverify(
     )
     if result["success"]:
         return _json(200, result)
-    return _json(_SITEVERIFY_STATUS.get(result.get("error", ""), 400), result)
+    return _json(siteverify_status(result.get("error")), result)
 
 
 challenge_view = _endpoint(_challenge)

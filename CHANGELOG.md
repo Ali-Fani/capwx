@@ -5,21 +5,32 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
-### Changed
-
-- Instrumentation generation is about 2.2x faster in pure Python: `hash_with()` inlines the JS
-  integer operations and hashes UTF-16 code units directly, `custom_obfuscate_strings()` decodes
-  each string literal once, and `build_probe()` serialises the font list once. The generated script
-  is unchanged.
-
 ### Added
 
+- FastAPI integration (`capwx.contrib.fastapi`), installed with `pip install 'capwx[fastapi]'`: a `Cap`
+  object with the widget router (challenge, redeem, siteverify), `cap.require(site)` as a dependency,
+  `mount_assets()`, `scripts()` and `widget()`, the `Blocked` exception and the `before_challenge` and
+  `difficulty_hook` hooks. Guide: [docs/fastapi.md](docs/fastapi.md).
+- `AsyncMemoryStore` (`capwx.stores.memory`), an async, process-local store for development and tests.
 - `benchmarks/` suite (pytest-benchmark) for mint, redeem, token validation, the instrumentation
   stages and the HashWX wasm call, plus cold-start, throughput and profiling scripts. It is opt-in
   (`bench` dependency group) and CI runs it advisory-only.
 - `docs/native-code-evaluation.md`: the measured decision record for issue #4
   (Cython / mypyc / PyO3), with a `ctypes` native-HashWX spike under
   `benchmarks/spikes/hashwx_native/`.
+
+### Changed
+
+- `acreate_challenge` and `aredeem` now run CPU-bound minting and verification in a worker thread
+  instead of on the event loop.
+- The vendored widget files moved from `src/capwx/contrib/django/static/capwx/` to `src/capwx/_assets/`.
+  Django still serves them at the same URLs (`/static/capwx/...`), because its app config adds the
+  directory to `STATICFILES_DIRS`, so Django users change nothing. Custom setups that read the old package
+  path must use the installed package's `capwx/_assets/` directory instead.
+- Instrumentation generation is about 2.2x faster in pure Python: `hash_with()` inlines the JS
+  integer operations and hashes UTF-16 code units directly, `custom_obfuscate_strings()` decodes
+  each string literal once, and `build_probe()` serialises the font list once. The generated script
+  is unchanged.
 
 ## [0.3.0] - 2026-10-24
 
