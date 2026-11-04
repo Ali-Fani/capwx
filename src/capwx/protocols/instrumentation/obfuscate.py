@@ -58,26 +58,31 @@ def decode_js_string(quote: str, body: str) -> str:
 
 
 def custom_obfuscate_strings(script: str) -> str:
-    """Port of upstream ``customObfuscateStrings``: move string literals into a shuffled table."""
+    """Port of upstream ``customObfuscateStrings``: move string literals into a shuffled table.
+
+    One regex pass collects the literals; the replacements are spliced in by hand instead of
+    running a second ``sub`` pass that would decode every literal again. The table keeps the
+    first-occurrence order before shuffling, like upstream, so a deterministic RNG still
+    reproduces the same output.
+    """
     matches = list(_STRING_LITERAL.finditer(script))
     if not matches:
         return script
-    seen: dict[str, int] = {}
-    arr: list[str] = []
-    for m in matches:
-        value = decode_js_string(m.group(1), m.group(2))
-        if value not in seen:
-            seen[value] = len(arr)
-            arr.append(value)
+    decoded = [decode_js_string(m.group(1), m.group(2)) for m in matches]
+    arr = list(dict.fromkeys(decoded))  # deduplicate, first occurrence wins
     _rng.shuffle(arr)
     new_index = {s: i for i, s in enumerate(arr)}
     t_name = "_T" + os.urandom(3).hex()
-    out = _STRING_LITERAL.sub(
-        lambda m: f"{t_name}[{new_index[decode_js_string(m.group(1), m.group(2))]}]",
-        script,
-    )
+
+    parts: list[str] = []
+    last = 0
+    for match, value in zip(matches, decoded):
+        parts.append(script[last : match.start()])
+        parts.append(f"{t_name}[{new_index[value]}]")
+        last = match.end()
+    parts.append(script[last:])
     table = json.dumps(arr, separators=(",", ":"), ensure_ascii=False)
-    return f"var {t_name}={table};{out}"
+    return f"var {t_name}={table};{''.join(parts)}"
 
 
 def strip_whitespace(script: str) -> str:

@@ -104,3 +104,17 @@ jobs:
         run: uv sync --group dev --extra django --extra ninja --extra drf --extra bolt
       - name: Node interop tests (capjs-core installed in a temp dir by the test)
         run: uv run pytest -m node tests/test_interop_node.py -v
+
+  bench:
+    # Advisory: reports numbers on every push and pull request, never blocks a merge.
+    # The recorded baseline and the decision it supports are in docs/native-code-evaluation.md.
+    name: benchmarks (advisory, ubuntu)
+    runs-on: ubuntu-24.04
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v10.3.2
+      - name: Sync dependencies
+        run: uv sync --group dev --group bench --extra django
+      - name: Benchmarks (pytest-benchmark)
+        run: uv run pytest benchmarks -q --benchmark-max-time=1 --benchmark-min-rounds=5

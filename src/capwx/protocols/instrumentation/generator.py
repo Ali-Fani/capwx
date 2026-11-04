@@ -28,11 +28,9 @@ from capwx._jsint import (
     js_or,
     js_rem,
     js_sar,
-    js_shl,
     js_xor,
     to_int32,
     to_uint32,
-    utf16_units,
 )
 from capwx.protocols.instrumentation.obfuscate import apply_obfuscation, build_blob
 
@@ -282,16 +280,24 @@ def shuffle(arr: list[_T]) -> list[_T]:
 
 
 def hash_with(seed: int) -> Callable[[str], int]:
-    """Port of upstream ``hashWith(seed)``: a 32-bit string hash matching the browser code."""
+    """Port of upstream ``hashWith(seed)``: a 32-bit string hash matching the browser code.
+
+    The JS is ``h ^= charCode; h = (h + (h<<1) + (h<<4) + (h<<7) + (h<<8) + (h<<24)) >>> 0``.
+    Bitwise JS operators convert to int32 first, so the shifts can be negative. Applying the
+    shifts to the unsigned value instead only differs by multiples of ``2**32``, which the final
+    ``>>> 0`` discards, so this loop can stay in unsigned arithmetic and inline the JS helpers:
+    it is ~6x faster than calling ``js_shl``/``js_xor``/``to_uint32`` per character, and this
+    function hashes every marker the block checks compare.
+    """
+
     base = to_uint32(seed)
 
     def h(s: str) -> int:
         x = base
-        for c in utf16_units(s):
-            x = js_xor(x, c)
-            x = to_uint32(
-                x + js_shl(x, 1) + js_shl(x, 4) + js_shl(x, 7) + js_shl(x, 8) + js_shl(x, 24)
-            )
+        data = s.encode("utf-16-le")  # charCodeAt(i) is a UTF-16 code unit
+        for i in range(0, len(data), 2):
+            x ^= data[i] | (data[i + 1] << 8)
+            x = (x + (x << 1) + (x << 4) + (x << 7) + (x << 8) + (x << 24)) & 0xFFFFFFFF
         return x
 
     return h
@@ -326,15 +332,8 @@ def build_probe(p: str) -> str:
     """Port of upstream ``buildProbe(P)``: the fingerprint probe that posts ``p``."""
     sf = _r_var()
     nat = _r_var()
-    fields = [
-        _fill(
-            f,
-            SF=sf,
-            NAT=nat,
-            FONTS=json_compact(PROBE_FONT_STACKS),
-        )
-        for f in _PROBE_FIELDS
-    ]
+    fonts = json_compact(PROBE_FONT_STACKS)  # one dump, 15 identical field fills
+    fields = [_fill(f, SF=sf, NAT=nat, FONTS=fonts) for f in _PROBE_FIELDS]
     shuffle(fields)
     head = _fill(_PROBE_HEAD, P=p, SF=sf, NAT=nat)
     return head + "".join(fields)

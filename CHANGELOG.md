@@ -3,6 +3,24 @@
 All notable changes to this project are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased]
+
+### Changed
+
+- Instrumentation generation is about 2.2x faster in pure Python: `hash_with()` inlines the JS
+  integer operations and hashes UTF-16 code units directly, `custom_obfuscate_strings()` decodes
+  each string literal once, and `build_probe()` serialises the font list once. The generated script
+  is unchanged.
+
+### Added
+
+- `benchmarks/` suite (pytest-benchmark) for mint, redeem, token validation, the instrumentation
+  stages and the HashWX wasm call, plus cold-start, throughput and profiling scripts. It is opt-in
+  (`bench` dependency group) and CI runs it advisory-only.
+- `docs/native-code-evaluation.md`: the measured decision record for issue #4
+  (Cython / mypyc / PyO3), with a `ctypes` native-HashWX spike under
+  `benchmarks/spikes/hashwx_native/`.
+
 ## [0.3.0] - 2026-10-24
 
 ### Fixed
