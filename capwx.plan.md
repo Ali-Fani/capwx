@@ -142,8 +142,7 @@ capwx/
 │       │   ├── forms.py            # CapField + CapWidget
 │       │   ├── decorators.py       # @require_cap
 │       │   ├── templatetags/capwx.py   # {% capwx_widget %}, {% capwx_scripts %}
-│       │   ├── templates/capwx/widget.html
-│       │   └── static/capwx/       # vendored browser assets (§11)
+│       │   └── templates/capwx/widget.html
 │       └── ninja/
 │           ├── __init__.py
 │           └── router.py           # build_router(), CapRequired auth helper
@@ -1000,9 +999,9 @@ The widget's `fetch` sends no CSRF token. Two supported modes:
 
 ### 11.4 Static assets and template tags
 
-Vendor into `contrib/django/static/capwx/` with `scripts/vendor_assets.py`
+Vendor into `src/capwx/_assets/` with `scripts/vendor_assets.py`
 (downloads npm tarballs at the pinned versions, verifies sha256, copies files,
-writes `static/capwx/VERSIONS.json`):
+writes `_assets/VERSIONS.json`):
 
 | File | Source |
 |---|---|

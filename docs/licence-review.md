@@ -10,7 +10,7 @@ the facts, not legal advice. Get a licence review before relying on it.
 | capwx code | Apache-2.0 (`LICENSE`), includes a Python port of Cap's `capjs-core` (also Apache-2.0) |
 | HashWX | tevador/hashwx, LGPL-3.0, commit `74b567a31276a4c5d7cb232a5b7639467f49f961` |
 | Form shipped | A prebuilt WebAssembly binary (`hashwx.wasm`, 12 541 bytes, sha256 in `src/capwx/_vendor/hashwx/SHA256`), taken unmodified from Cap's `core/vendor/` |
-| Where it ships | `capwx/_vendor/hashwx/hashwx.wasm` (server, run with wasmtime) and `capwx/contrib/django/static/capwx/hashwx.wasm` (browser, from `@cap.js/wasm` 0.0.8; byte-identical) |
+| Where it ships | `capwx/_vendor/hashwx/hashwx.wasm` (server, run with wasmtime) and `capwx/_assets/hashwx.wasm` (browser, served by Django at `static/capwx/`; from `@cap.js/wasm` 0.0.8; byte-identical) |
 | Separation | Separate files, never linked into Python code; loaded at runtime from a path; replaceable via `CapConfig.hashwx_wasm_path` (server) and by overriding the static file (browser) |
 | Not done | HashWX's C code is **not** ported to Python, so no capwx module is LGPL |
 | Licence text | Shipped beside both copies and listed in `license-files` |

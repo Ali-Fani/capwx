@@ -19,7 +19,7 @@ import zipfile
 from collections.abc import Callable
 from pathlib import Path
 
-STATIC = "capwx/contrib/django/static/capwx"
+STATIC = "capwx/_assets"
 VENDOR = "capwx/_vendor/hashwx"
 # Repository path (sdist only, never in the wheel) of the unmodified HashWX source snapshot.
 SOURCE_DIR = "third_party/hashwx"
@@ -39,6 +39,12 @@ WHEEL_REQUIRED = (
     "capwx/contrib/django/templates/capwx/widget.html",
     "capwx/contrib/django/management/commands/capwx_check.py",
     "capwx/py.typed",
+    "capwx/contrib/fastapi/__init__.py",
+    "capwx/contrib/fastapi/assets.py",
+    "capwx/contrib/fastapi/config.py",
+    "capwx/contrib/fastapi/deps.py",
+    "capwx/contrib/fastapi/router.py",
+    "capwx/contrib/fastapi/templates.py",
 )
 # Relative to the wheel's "<name>-<version>.dist-info/" directory.
 WHEEL_LICENSE_FILES = (
@@ -64,6 +70,12 @@ SDIST_REQUIRED = (
     "src/capwx/py.typed",
     "src/capwx/contrib/django/templates/capwx/widget.html",
     "src/capwx/contrib/django/management/commands/capwx_check.py",
+    "src/capwx/contrib/fastapi/__init__.py",
+    "src/capwx/contrib/fastapi/assets.py",
+    "src/capwx/contrib/fastapi/config.py",
+    "src/capwx/contrib/fastapi/deps.py",
+    "src/capwx/contrib/fastapi/router.py",
+    "src/capwx/contrib/fastapi/templates.py",
     "scripts/vendor_assets.py",
     "tests/test_challenge.py",
     # The HashWX source offer: the LGPL-3.0 Corresponding Source for the vendored wasm.

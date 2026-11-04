@@ -13,7 +13,7 @@ This product includes and/or is derived from the following third-party works:
    Pinned commit: 29bbe6fbe284786cdb0d4489e5040aee6042b2a4
    Ported parts: core/src (capjs-core 0.1.5) protocol logic, instrumentation
    generation and detection.
-   Vendored browser assets (src/capwx/contrib/django/static/capwx/):
+   Vendored browser assets (src/capwx/_assets/, served by Django at static/capwx/):
    cap-widget 0.1.58 (cap.min.js), @cap.js/wasm 0.0.8 (cap_wasm_bg.wasm),
    pako 2.1.0 (pako_inflate.min.js, MIT).
 
@@ -22,8 +22,8 @@ This product includes and/or is derived from the following third-party works:
    Licensed under the GNU Lesser General Public License, Version 3.
    Pinned commit: 74b567a31276a4c5d7cb232a5b7639467f49f961
    Vendored binary: src/capwx/_vendor/hashwx/hashwx.wasm (also shipped as
-   static/capwx/hashwx.wasm). The licence text is in
-   src/capwx/_vendor/hashwx/LICENSE and static/capwx/hashwx-LICENSE.txt.
+   src/capwx/_assets/hashwx.wasm). The licence text is in
+   src/capwx/_vendor/hashwx/LICENSE and src/capwx/_assets/hashwx-LICENSE.txt.
    The wasm binary is a separate file that can be replaced with a user-supplied
    build (config option hashwx_wasm_path, or overriding the browser static file).
 

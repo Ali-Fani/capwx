@@ -19,6 +19,7 @@ import uuid
 import pytest
 
 from capwx.stores import (
+    AsyncMemoryStore,
     AsyncNonceStore,
     AsyncTokenStore,
     NonceStore,
@@ -492,3 +493,91 @@ def test_django_store_claim_and_take_locmem():
     assert store.peek(key + ":t") == 99
     assert store.take(key + ":t") == 99
     assert store.take(key + ":t") is None
+
+
+# ---------------------------------------------------------------- AsyncMemoryStore
+
+
+def test_async_memory_store_is_async_and_protocol_conformant():
+    store = AsyncMemoryStore()
+    assert is_async_store(store) is True
+    assert isinstance(store, AsyncNonceStore)
+    assert isinstance(store, AsyncTokenStore)
+
+
+def test_async_memory_store_claim_is_first_wins():
+    async def scenario():
+        store = AsyncMemoryStore(FakeClock())
+        assert await store.claim("n", 30) is True
+        assert await store.claim("n", 30) is False
+        assert await store.claim("other", 30) is True
+
+    asyncio.run(scenario())
+
+
+def test_async_memory_store_put_take_is_single_use_and_peek_is_not_destructive():
+    async def scenario():
+        store = AsyncMemoryStore(FakeClock())
+        await store.put("t", 77, 30)
+        assert await store.peek("t") == 77
+        assert await store.peek("t") == 77
+        assert await store.take("t") == 77
+        assert await store.take("t") is None
+        assert await store.peek("t") is None
+
+    asyncio.run(scenario())
+
+
+def test_async_memory_store_expiry_uses_injected_clock():
+    clock = FakeClock()
+
+    async def scenario():
+        store = AsyncMemoryStore(clock)
+        assert await store.claim("n", 10) is True
+        await store.put("t", 5, 10)
+        clock.advance(10.5)
+        assert await store.claim("n", 10) is True  # the old claim has expired
+        assert await store.take("t") is None  # the token has expired too
+        assert await store.peek("t") is None
+
+    asyncio.run(scenario())
+
+
+def test_async_memory_store_drives_aredeem_and_avalidate_token():
+    from _solver import body_for
+
+    from capwx.challenge import acreate_challenge, aredeem
+    from capwx.config import CapConfig
+    from capwx.errors import Reason
+    from capwx.tokens import avalidate_token
+
+    secret = "test-secret-0123456789abcdef"
+    cfg = CapConfig(
+        secret=secret,
+        protocols=("sha256-pow",),
+        sha256_difficulty=1,
+        sha256_count=2,
+        challenge_ttl_ms=60_000,
+        token_ttl_ms=60_000,
+    )
+    now = 1_700_000_000_000
+
+    async def scenario():
+        store = AsyncMemoryStore(FakeClock(start=now / 1000))
+        resp = await acreate_challenge(cfg, scope="login", now_ms=now)
+        body = body_for(secret, resp)
+        first = await aredeem(
+            cfg, body, scope="login", nonce_store=store, token_store=store, now_ms=now + 1
+        )
+        again = await aredeem(
+            cfg, body, scope="login", nonce_store=store, token_store=store, now_ms=now + 1
+        )
+        assert first.token is not None
+        valid = await avalidate_token(cfg, first.token, scope="login", token_store=store)
+        spent = await avalidate_token(cfg, first.token, scope="login", token_store=store)
+        return first.success, again.reason, valid, spent
+
+    success, reason, valid, spent = asyncio.run(scenario())
+    assert success is True
+    assert reason == Reason.ALREADY_REDEEMED
+    assert valid is True and spent is False

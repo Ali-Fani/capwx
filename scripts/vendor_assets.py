@@ -11,7 +11,7 @@ Each tarball is downloaded into a fresh temporary directory and its sha512 is
 checked against the registry's ``dist.integrity``. Only the wanted members are
 extracted, after every member name has been validated (no absolute paths, no
 ``..`` components, no links). The results are copied into
-``src/capwx/contrib/django/static/capwx/`` together with ``VERSIONS.json``
+``src/capwx/_assets/`` together with ``VERSIONS.json``
 (sha256 of every file) and the LGPL licence for ``hashwx.wasm``.
 
 Stdlib only. Run from the repository root:
@@ -38,7 +38,7 @@ USER_AGENT = "capwx-vendor-assets/0.1 (+https://github.com/tiagozip/cap)"
 TIMEOUT_S = 120
 
 ROOT = Path(__file__).resolve().parent.parent
-STATIC_DIR = ROOT / "src" / "capwx" / "contrib" / "django" / "static" / "capwx"
+STATIC_DIR = ROOT / "src" / "capwx" / "_assets"
 HASHWX_VENDOR_DIR = ROOT / "src" / "capwx" / "_vendor" / "hashwx"
 HASHWX_LICENSE_NAME = "hashwx-LICENSE.txt"
 

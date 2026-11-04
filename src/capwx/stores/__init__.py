@@ -17,6 +17,8 @@ from __future__ import annotations
 import inspect
 from typing import Protocol, runtime_checkable
 
+from capwx.stores.memory import AsyncMemoryStore
+
 
 @runtime_checkable
 class NonceStore(Protocol):
@@ -53,6 +55,7 @@ def is_async_store(store: object) -> bool:
 
 
 __all__ = [
+    "AsyncMemoryStore",
     "AsyncNonceStore",
     "AsyncTokenStore",
     "NonceStore",

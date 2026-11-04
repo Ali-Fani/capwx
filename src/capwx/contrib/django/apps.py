@@ -1,7 +1,10 @@
 """capwx.contrib.django.apps: AppConfig. Validates settings and loads HashWX at startup."""
 
 from django.apps import AppConfig
+from django.conf import settings
 from django.core.exceptions import ImproperlyConfigured
+
+from capwx._assets_path import ASSETS_DIR
 
 
 class CapwxConfig(AppConfig):
@@ -13,6 +16,13 @@ class CapwxConfig(AppConfig):
         from capwx import hashwx_available, hashwx_ready
         from capwx.contrib.django.conf import validate_settings
         from capwx.protocols.hashwx import missing_wasmtime_message
+
+        # Serve the vendored browser assets under the URL prefix /static/capwx/.
+        assets_entry = ("capwx", str(ASSETS_DIR))
+        dirs = list(settings.STATICFILES_DIRS)
+        if assets_entry not in dirs:
+            dirs.append(assets_entry)
+            settings.STATICFILES_DIRS = dirs
 
         conf = validate_settings()  # raises ImproperlyConfigured on bad CAPWX settings
         hashwx_sites = sorted(

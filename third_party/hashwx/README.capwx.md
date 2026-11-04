@@ -26,7 +26,7 @@ capwx ships the same binary in two places:
 | File | Used by | sha256 |
 |---|---|---|
 | `src/capwx/_vendor/hashwx/hashwx.wasm` (12 541 bytes) | server, via wasmtime | `b1a0dbb3ef444d3c7069e0a5e0a0273ffa4cf8fef62cbbe43761c02f7cd6aff5` |
-| `src/capwx/contrib/django/static/capwx/hashwx.wasm` | browser widget (Django static file) | same, byte-identical |
+| `src/capwx/_assets/hashwx.wasm` | browser widget (served by Django at `static/capwx/`) | same, byte-identical |
 
 Both copies are byte-identical to Cap's `core/vendor/hashwx.wasm` at the Cap commit pinned in
 `UPSTREAM.md` (`29bbe6fbe284786cdb0d4489e5040aee6042b2a4`). Cap pins the HashWX commit in

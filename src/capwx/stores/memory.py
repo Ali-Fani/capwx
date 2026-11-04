@@ -77,3 +77,25 @@ class MemoryStore:
             self._purge(self._clock())
             entry = self._data.get(key)
             return _expiry(entry)
+
+
+class AsyncMemoryStore:
+    """MemoryStore with ``async def`` methods, for the ``a*`` API (aredeem, avalidate_token).
+
+    It awaits nothing: the work is a dict operation under a lock, so no thread hop is needed.
+    """
+
+    def __init__(self, clock: Callable[[], float] = time.time) -> None:
+        self._store = MemoryStore(clock)
+
+    async def claim(self, key: str, ttl_seconds: int) -> bool:
+        return self._store.claim(key, ttl_seconds)
+
+    async def put(self, key: str, expires_ms: int, ttl_seconds: int) -> None:
+        self._store.put(key, expires_ms, ttl_seconds)
+
+    async def take(self, key: str) -> int | None:
+        return self._store.take(key)
+
+    async def peek(self, key: str) -> int | None:
+        return self._store.peek(key)
